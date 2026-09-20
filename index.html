@@ -3,20 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PC28 四组合排除法 · 实时预测仪表盘</title>
+<title>PC28 · 四组合排除法实时预测</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   /* ============================================================
-     视觉主题：暗夜霓虹 · 玻璃拟态 + 动态渐变背景
+     主题：暗夜霓虹
      ============================================================ */
   :root{
     --bg-0:#05070d;
     --bg-1:#0a0f1a;
     --bg-2:#0f1524;
     --glass:rgba(22,32,50,0.55);
-    --glass-strong:rgba(26,38,58,0.75);
     --glass-line:rgba(80,120,180,0.18);
-    --glass-line-2:rgba(120,160,220,0.28);
+    --glass-line-2:rgba(120,160,220,0.30);
     --txt:#eaf1fb;
     --txt-2:#c2cfe0;
     --sub:#7f93ab;
@@ -27,10 +26,6 @@
     --bad:#ff5470;
     --warn:#ffbc42;
     --purple:#b18cff;
-    --glow-blue:0 0 20px rgba(78,161,255,0.45);
-    --glow-purple:0 0 24px rgba(124,92,255,0.4);
-    --glow-red:0 0 22px rgba(255,84,112,0.5);
-    --glow-green:0 0 22px rgba(49,224,160,0.4);
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -46,11 +41,8 @@
     background-attachment:fixed;
     overflow-x:hidden;
   }
-  /* 动效光斑 */
-  body::before,
-  body::after{
-    content:"";
-    position:fixed; pointer-events:none; z-index:0;
+  body::before, body::after{
+    content:""; position:fixed; pointer-events:none; z-index:0;
     width:60vmax; height:60vmax; border-radius:50%;
     filter:blur(90px); opacity:.28;
     animation:float 22s ease-in-out infinite;
@@ -67,8 +59,6 @@
     0%,100%{transform:translate3d(0,0,0) scale(1)}
     50%{transform:translate3d(4vmax,3vmax,0) scale(1.08)}
   }
-
-  /* 网格暗纹 */
   .grid-overlay{
     position:fixed; inset:0; z-index:0; pointer-events:none;
     background-image:
@@ -78,15 +68,12 @@
     mask-image:radial-gradient(circle at 50% 30%, #000 30%, transparent 85%);
     -webkit-mask-image:radial-gradient(circle at 50% 30%, #000 30%, transparent 85%);
   }
-
   .wrap{
     position:relative; z-index:1;
     max-width:1440px; margin:0 auto; padding:22px 16px 80px;
   }
 
-  /* ============================================================
-     标题
-     ============================================================ */
+  /* 标题 */
   .hero{
     display:flex; align-items:flex-end; justify-content:space-between;
     gap:16px; flex-wrap:wrap; margin-bottom:18px;
@@ -114,9 +101,7 @@
     50%{opacity:.45; transform:scale(.85)}
   }
 
-  /* ============================================================
-     玻璃卡片
-     ============================================================ */
+  /* 卡片 */
   .card{
     position:relative;
     background:var(--glass);
@@ -145,7 +130,6 @@
   .card h2::before{
     content:""; width:3px; height:14px; border-radius:2px;
     background:linear-gradient(180deg, var(--accent), var(--accent-2));
-    box-shadow:var(--glow-blue);
   }
 
   .grid{display:grid; gap:14px}
@@ -154,9 +138,7 @@
   @media(max-width:960px){ .g2,.g4{grid-template-columns:1fr 1fr} }
   @media(max-width:620px){ .g2,.g4{grid-template-columns:1fr} }
 
-  /* ============================================================
-     按钮
-     ============================================================ */
+  /* 按钮 */
   button{
     position:relative; z-index:2;
     background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
@@ -169,13 +151,18 @@
   button:hover{filter:brightness(1.08); transform:translateY(-1px)}
   button:active{transform:translateY(0)}
   button:disabled{opacity:.5; cursor:not-allowed; transform:none}
+  .btn-clear{
+    background:transparent; color:var(--sub);
+    padding:6px 12px; font-size:11.5px;
+    border:1px solid var(--glass-line);
+    box-shadow:none;
+    font-weight:500;
+  }
+  .btn-clear:hover{color:var(--bad); border-color:rgba(255,84,112,.4); filter:none}
 
-  /* ============================================================
-     状态栏
-     ============================================================ */
+  /* 状态区 */
   .status-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
     gap:12px; margin-bottom:14px;
   }
   .status-item{
@@ -199,7 +186,7 @@
   .status-item .val.purple{color:var(--purple)}
   .status-item .val.good{color:var(--good)}
 
-  /* 预测结果面板 */
+  /* 预测结果 */
   .result-panel{
     position:relative;
     background:
@@ -218,7 +205,6 @@
     font-size:34px; font-weight:900; letter-spacing:1.5px;
     background:linear-gradient(90deg, #ff8fa6, #ff5470);
     -webkit-background-clip:text; background-clip:text; color:transparent;
-    text-shadow:0 0 26px rgba(255,84,112,.4);
     line-height:1.1;
   }
   .result-panel .buy{
@@ -236,13 +222,10 @@
     font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
     font-size:22px; font-weight:800;
     color:var(--accent-3);
-    text-shadow:0 0 18px rgba(34,211,238,.55);
     min-width:52px; display:inline-block; text-align:center;
   }
 
-  /* ============================================================
-     KPI 卡片
-     ============================================================ */
+  /* KPI */
   .kpi{
     position:relative;
     background:linear-gradient(160deg, rgba(30,45,70,.65), rgba(15,22,36,.75));
@@ -251,10 +234,7 @@
     overflow:hidden;
     transition:border-color .2s ease, transform .2s ease;
   }
-  .kpi:hover{
-    border-color:var(--glass-line-2);
-    transform:translateY(-2px);
-  }
+  .kpi:hover{border-color:var(--glass-line-2); transform:translateY(-2px)}
   .kpi::after{
     content:""; position:absolute; right:-30px; top:-30px;
     width:100px; height:100px; border-radius:50%;
@@ -266,23 +246,16 @@
     font-variant-numeric:tabular-nums; letter-spacing:.3px;
   }
   .kpi .k{font-size:11.5px; color:var(--sub); margin-top:4px; letter-spacing:.4px}
-  .kpi .v.good{color:var(--good); text-shadow:0 0 20px rgba(49,224,160,.35)}
-  .kpi .v.bad{color:var(--bad); text-shadow:0 0 20px rgba(255,84,112,.35)}
-  .kpi .v.warn{color:var(--warn); text-shadow:0 0 20px rgba(255,188,66,.35)}
-  .kpi .v.purple{color:var(--purple); text-shadow:0 0 20px rgba(177,140,255,.35)}
-  .kpi .v.accent{color:var(--accent); text-shadow:0 0 20px rgba(78,161,255,.35)}
+  .kpi .v.good{color:var(--good)}
+  .kpi .v.bad{color:var(--bad)}
+  .kpi .v.warn{color:var(--warn)}
+  .kpi .v.purple{color:var(--purple)}
+  .kpi .v.accent{color:var(--accent)}
 
-  /* ============================================================
-     策略权重条
-     ============================================================ */
+  /* 权重条 */
   .strategy-bars{display:grid; gap:10px; margin-top:4px}
-  .sbar-row{
-    display:grid; grid-template-columns:120px 1fr 64px;
-    gap:12px; align-items:center;
-  }
-  @media(max-width:520px){
-    .sbar-row{grid-template-columns:96px 1fr 56px}
-  }
+  .sbar-row{display:grid; grid-template-columns:120px 1fr 64px; gap:12px; align-items:center}
+  @media(max-width:520px){ .sbar-row{grid-template-columns:96px 1fr 56px} }
   .sbar-label{font-size:12px; color:var(--txt-2); letter-spacing:.2px}
   .sbar-track{
     height:16px; border-radius:8px; overflow:hidden;
@@ -304,9 +277,7 @@
     text-align:right; font-weight:700;
   }
 
-  /* ============================================================
-     提示
-     ============================================================ */
+  /* 提示 */
   .alert{
     display:flex; align-items:center; gap:10px;
     padding:11px 16px; border-radius:12px; font-size:12.5px;
@@ -314,28 +285,15 @@
     backdrop-filter:blur(10px);
     -webkit-backdrop-filter:blur(10px);
   }
-  .alert-ok{
-    background:rgba(49,224,160,.10); border:1px solid rgba(49,224,160,.35);
-    color:#a8f0d0;
-  }
-  .alert-warn{
-    background:rgba(255,188,66,.10); border:1px solid rgba(255,188,66,.35);
-    color:#f5dc9e;
-  }
-  .alert-err{
-    background:rgba(255,84,112,.10); border:1px solid rgba(255,84,112,.4);
-    color:#ffb8c5;
-  }
-  .alert .dot{
-    width:8px; height:8px; border-radius:50%; flex-shrink:0;
-  }
+  .alert-ok{background:rgba(49,224,160,.10); border:1px solid rgba(49,224,160,.35); color:#a8f0d0}
+  .alert-warn{background:rgba(255,188,66,.10); border:1px solid rgba(255,188,66,.35); color:#f5dc9e}
+  .alert-err{background:rgba(255,84,112,.10); border:1px solid rgba(255,84,112,.4); color:#ffb8c5}
+  .alert .dot{width:8px; height:8px; border-radius:50%; flex-shrink:0}
   .alert-ok .dot{background:var(--good); box-shadow:0 0 10px var(--good)}
   .alert-warn .dot{background:var(--warn); box-shadow:0 0 10px var(--warn)}
   .alert-err .dot{background:var(--bad); box-shadow:0 0 10px var(--bad)}
 
-  /* ============================================================
-     图表
-     ============================================================ */
+  /* 图表 */
   canvas{width:100%; display:block}
   .chart-box{position:relative; height:290px}
   @media(max-width:620px){ .chart-box{height:230px} }
@@ -345,9 +303,7 @@
   }
   .note .legend-dot{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px}
 
-  /* ============================================================
-     表格
-     ============================================================ */
+  /* 表格 */
   table{width:100%; border-collapse:collapse; font-size:12px}
   th,td{
     padding:8px 10px; text-align:right;
@@ -370,13 +326,11 @@
   }
   .scroll::-webkit-scrollbar{width:8px; height:8px}
   .scroll::-webkit-scrollbar-thumb{background:rgba(120,160,220,.25); border-radius:4px}
-  .scroll::-webkit-scrollbar-thumb:hover{background:rgba(120,160,220,.4)}
 
   .hit{color:var(--good); font-weight:700}
   .miss{color:var(--bad); font-weight:700}
   .excl{color:var(--warn); font-weight:700}
 
-  /* 通用小工具 */
   .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
   .pill{
     display:inline-flex; align-items:center; gap:6px;
@@ -384,23 +338,28 @@
     background:rgba(30,45,70,.6); border:1px solid var(--glass-line);
     color:var(--sub);
   }
-  .divider{height:1px; background:var(--glass-line); margin:10px 0}
 
-  /* 入口卡片（初始态） */
-  .start-hero{
-    text-align:center; padding:48px 20px;
-  }
+  /* 初始 hero */
+  .start-hero{text-align:center; padding:48px 20px}
   .start-hero .icon{
     font-size:56px; margin-bottom:10px;
     filter:drop-shadow(0 0 30px rgba(78,161,255,.5));
   }
   .start-hero h2{
     font-size:20px; color:var(--txt); margin:0 0 8px;
-    letter-spacing:.4px;
-    justify-content:center;
+    letter-spacing:.4px; justify-content:center;
   }
   .start-hero h2::before{display:none}
   .start-hero p{color:var(--sub); margin:0 0 24px; font-size:13px}
+
+  /* 底部 */
+  .bottom-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; flex-wrap:wrap;
+    margin-top:20px; padding-top:16px;
+    border-top:1px solid var(--glass-line);
+    font-size:11.5px; color:var(--sub);
+  }
 </style>
 </head>
 <body>
@@ -409,24 +368,22 @@
 
 <div class="wrap">
 
-  <!-- ============ Hero ============ -->
+  <!-- Hero -->
   <div class="hero">
     <div>
       <h1>PC28 · 四组合排除法实时预测</h1>
-      <div class="sub">数据源 pc28.help · 四策略动态加权 · 每 30 秒自动刷新</div>
+      <div class="sub">数据源 pc28.help · 本地累积 · 四策略动态加权 · 每 30 秒自动刷新</div>
     </div>
-    <div class="live-badge">
-      <span class="live-dot"></span> LIVE
-    </div>
+    <div class="live-badge"><span class="live-dot"></span>LIVE</div>
   </div>
 
-  <!-- ============ 加载提示 ============ -->
+  <!-- 提示 -->
   <div id="alertBox" class="alert alert-warn">
     <span class="dot"></span>
-    <span id="alertMsg">正在获取数据…</span>
+    <span id="alertMsg">正在初始化…</span>
   </div>
 
-  <!-- ============ 初始态（未加载） ============ -->
+  <!-- 初始态 -->
   <div class="card start-hero" id="startHero">
     <div class="icon">📡</div>
     <h2>正在连接数据源</h2>
@@ -436,7 +393,7 @@
     </div>
   </div>
 
-  <!-- ============ 顶部状态区 ============ -->
+  <!-- 状态 -->
   <div class="card" id="statusCard" style="display:none">
     <h2>实时状态</h2>
     <div class="status-grid" id="latestGrid"></div>
@@ -462,7 +419,7 @@
     </div>
   </div>
 
-  <!-- ============ 图表区 ============ -->
+  <!-- 图表 -->
   <div id="chartsArea" style="display:none">
     <div class="grid g2">
       <div class="card">
@@ -485,13 +442,13 @@
     </div>
   </div>
 
-  <!-- ============ KPI 区 ============ -->
+  <!-- KPI -->
   <div class="card" id="statsCard" style="display:none">
     <h2>统计面板</h2>
     <div class="grid g4" id="kpis"></div>
   </div>
 
-  <!-- ============ 策略权重 ============ -->
+  <!-- 权重 -->
   <div class="card" id="weightsCard" style="display:none">
     <h2>策略权重 · softmax(T=1.0)</h2>
     <div class="strategy-bars" id="strategyBars"></div>
@@ -503,7 +460,7 @@
     </div>
   </div>
 
-  <!-- ============ 明细表 ============ -->
+  <!-- 明细 -->
   <div class="card" id="detailCard" style="display:none">
     <h2>预测明细 · 最近 40 期</h2>
     <div class="scroll">
@@ -511,13 +468,18 @@
         <thead>
           <tr>
             <th>期号</th><th>和值</th><th>实际组合</th><th>排除组合</th><th>结果</th>
-            <th>μ̂</th><th>σ</th>
-            <th>策略明细</th>
+            <th>μ̂</th><th>σ</th><th>策略明细</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
+  </div>
+
+  <!-- 底部 -->
+  <div class="bottom-bar">
+    <div id="footerInfo">已累积 0 期数据</div>
+    <button id="btnClear" class="btn-clear">清除本地数据并重新开始</button>
   </div>
 
 </div>
@@ -536,6 +498,8 @@ const EVAL_WIN = 30;
 const STRATEGY_WIN = 30;
 const REFIT_INTERVAL = 50;
 const MARKOV_INTERVAL = 100;
+const STORAGE_KEY = 'pc28_history_data';
+const MAX_HISTORY = 5000;
 
 const COMBOS = {
   '大单': [15,17,19,21,23,25,27],
@@ -766,6 +730,37 @@ function softmax(scores, T){
 }
 
 // ================================================================
+// 本地存储
+// ================================================================
+function loadFromStorage(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return [];
+    const arr = JSON.parse(raw);
+    if(!Array.isArray(arr)) return [];
+    return arr.filter(r => r && r.nbr && Number.isFinite(r.num) && NAMES.includes(r.combination));
+  } catch(e){
+    console.warn('[storage] 读取失败', e);
+    return [];
+  }
+}
+function saveToStorage(arr){
+  try{
+    // 上限：删除最旧期号
+    if(arr.length > MAX_HISTORY){
+      arr.sort((a,b) => parseInt(a.nbr) - parseInt(b.nbr));
+      arr = arr.slice(-MAX_HISTORY);
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  } catch(e){
+    console.warn('[storage] 保存失败', e);
+  }
+}
+function clearStorage(){
+  try{ localStorage.removeItem(STORAGE_KEY); } catch(e){}
+}
+
+// ================================================================
 // 状态
 // ================================================================
 let state = {
@@ -821,7 +816,9 @@ function parseRecord(item){
     time: item.time || ''
   };
 }
-function mergeData(newItems){
+
+// 从接口数据合并到 state 并写回 localStorage
+function mergeAndPersist(newItems){
   const existing = new Map(state.rawData.map(r => [r.nbr, r]));
   let added = 0;
   for(const item of newItems){
@@ -835,7 +832,20 @@ function mergeData(newItems){
   state.rawData = arr;
   state.values = arr.map(r => r.num);
   state.comboSeq = arr.map(r => r.combination);
+  saveToStorage(arr);
   return added;
+}
+
+// 从本地初始化（首次加载或手动刷新用）
+function bootstrapFromStorage(){
+  const stored = loadFromStorage();
+  if(stored.length){
+    stored.sort((a, b) => parseInt(a.nbr) - parseInt(b.nbr));
+    state.rawData = stored;
+    state.values = stored.map(r => r.num);
+    state.comboSeq = stored.map(r => r.combination);
+    console.log('[init] 从 localStorage 加载', stored.length, '期');
+  }
 }
 
 // ================================================================
@@ -851,6 +861,7 @@ function refitAR(t){
   const bestP = selectBestP(residuals, maxP);
   return fitAR(residuals, bestP);
 }
+
 function runBacktestIncremental(){
   const values = state.values;
   const comboSeq = state.comboSeq;
@@ -950,6 +961,7 @@ function runBacktestIncremental(){
     });
   }
 }
+
 function predictNext(){
   const values = state.values;
   const comboSeq = state.comboSeq;
@@ -1086,7 +1098,10 @@ function renderLatest(){
     document.getElementById('predExclude').textContent = '—';
     document.getElementById('predBuy').textContent = '—';
   }
+
+  document.getElementById('footerInfo').textContent = `已累积 ${state.rawData.length} 期数据`;
 }
+
 function renderKPIs(){
   const stats = computeStats();
   if(!stats) return;
@@ -1108,6 +1123,7 @@ function renderKPIs(){
     `<div class="kpi"><div class="v ${x.cls}">${x.v}</div><div class="k">${x.k}</div></div>`
   ).join('');
 }
+
 function renderWeights(){
   const pred = state.nextPrediction;
   if(!pred) return;
@@ -1123,6 +1139,7 @@ function renderWeights(){
     </div>`;
   }).join('');
 }
+
 function renderCharts(){
   const stats = computeStats();
   if(!stats) return;
@@ -1217,6 +1234,7 @@ function renderCharts(){
     }
   });
 }
+
 function renderTable(){
   const tbody = document.querySelector('#detailTable tbody');
   const records = state.records.slice(-40).reverse();
@@ -1236,6 +1254,7 @@ function renderTable(){
     `;
   }).join('');
 }
+
 function renderAll(){
   if(state.rawData.length === 0) return;
   renderLatest();
@@ -1253,10 +1272,12 @@ function setAlert(msg, cls){
   box.className = 'alert alert-' + (cls || 'warn');
   document.getElementById('alertMsg').textContent = msg;
 }
+
 async function fetchAndUpdate(silent){
   try{
     const items = await fetchDataWithRetry();
-    const added = mergeData(items);
+    const added = mergeAndPersist(items);
+
     document.getElementById('dataCount').textContent = state.rawData.length + ' 期';
     document.getElementById('lastUpdate').textContent = '更新于 ' + new Date().toLocaleTimeString();
 
@@ -1278,6 +1299,7 @@ async function fetchAndUpdate(silent){
     setAlert('数据获取异常：' + err.message, 'err');
   }
 }
+
 function startCountdown(){
   if(state.countdownTimer) clearInterval(state.countdownTimer);
   state.countdown = POLL_INTERVAL;
@@ -1288,12 +1310,27 @@ function startCountdown(){
     if(state.countdown <= 0) state.countdown = POLL_INTERVAL;
   }, 1000);
 }
+
 function startPolling(){
   if(state.pollTimer) clearInterval(state.pollTimer);
   state.pollTimer = setInterval(() => {
     fetchAndUpdate(true);
     state.countdown = POLL_INTERVAL;
   }, POLL_INTERVAL * 1000);
+}
+
+function resetState(){
+  state.rawData = [];
+  state.values = [];
+  state.comboSeq = [];
+  state.records = [];
+  state.hitsByStrategy = [];
+  state.currentAR = null;
+  state.currentW = 20;
+  state.currentSigma = 3.0;
+  state.markovTable = null;
+  state.markovBuiltAt = -1;
+  state.nextPrediction = null;
 }
 
 // ================================================================
@@ -1306,12 +1343,44 @@ document.getElementById('btnRefresh').onclick = () => {
 document.getElementById('btnStartRefresh').onclick = () => {
   fetchAndUpdate(false);
 };
+document.getElementById('btnClear').onclick = () => {
+  if(!confirm('确定清除本地数据并重新开始？')) return;
+  clearStorage();
+  resetState();
+  document.getElementById('dataCount').textContent = '0 期';
+  document.getElementById('lastUpdate').textContent = '—';
+  document.getElementById('footerInfo').textContent = '已累积 0 期数据';
+  document.getElementById('statusCard').style.display = 'none';
+  document.getElementById('chartsArea').style.display = 'none';
+  document.getElementById('statsCard').style.display = 'none';
+  document.getElementById('weightsCard').style.display = 'none';
+  document.getElementById('detailCard').style.display = 'none';
+  document.getElementById('startHero').style.display = 'block';
+  setAlert('本地数据已清除，正在重新初始化…', 'warn');
+  fetchAndUpdate(false);
+};
 
 (async function init(){
-  setAlert('正在获取数据…', 'warn');
-  await fetchAndUpdate(false);
+  setAlert('正在初始化…', 'warn');
+
+  // 1) 从 localStorage 加载
+  bootstrapFromStorage();
+  if(state.rawData.length > 0){
+    console.log('[init] 本地已有', state.rawData.length, '期数据');
+    document.getElementById('footerInfo').textContent = `已累积 ${state.rawData.length} 期数据`;
+  }
+
+  // 2) 首次拉取接口
+  await fetchAndUpdate(state.rawData.length > 0);
+
+  // 3) 启动倒计时与轮询
   startCountdown();
   startPolling();
+
+  // 4) 页面卸载前保存（双保险）
+  window.addEventListener('beforeunload', () => {
+    if(state.rawData.length) saveToStorage(state.rawData);
+  });
 })();
 
 </script>
