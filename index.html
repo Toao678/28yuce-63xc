@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC28 四组合排除法 · 实时预测仪表盘</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  /* ============================================================
+     视觉主题：暗夜霓虹 · 玻璃拟态 + 动态渐变背景
+     ============================================================ */
+  :root{
+    --bg-0:#05070d;
+    --bg-1:#0a0f1a;
+    --bg-2:#0f1524;
+    --glass:rgba(22,32,50,0.55);
+    --glass-strong:rgba(26,38,58,0.75);
+    --glass-line:rgba(80,120,180,0.18);
+    --glass-line-2:rgba(120,160,220,0.28);
+    --txt:#eaf1fb;
+    --txt-2:#c2cfe0;
+    --sub:#7f93ab;
+    --accent:#4ea1ff;
+    --accent-2:#7c5cff;
+    --accent-3:#22d3ee;
+    --good:#31e0a0;
+    --bad:#ff5470;
+    --warn:#ffbc42;
+    --purple:#b18cff;
+    --glow-blue:0 0 20px rgba(78,161,255,0.45);
+    --glow-purple:0 0 24px rgba(124,92,255,0.4);
+    --glow-red:0 0 22px rgba(255,84,112,0.5);
+    --glow-green:0 0 22px rgba(49,224,160,0.4);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:14px; line-height:1.55;
+    background:
+      radial-gradient(1200px 800px at 10% -10%, rgba(78,161,255,0.18), transparent 60%),
+      radial-gradient(1000px 700px at 110% 10%, rgba(124,92,255,0.16), transparent 60%),
+      radial-gradient(900px 600px at 50% 120%, rgba(34,211,238,0.10), transparent 60%),
+      linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 45%, var(--bg-2) 100%);
+    background-attachment:fixed;
+    overflow-x:hidden;
+  }
+  /* 动效光斑 */
+  body::before,
+  body::after{
+    content:"";
+    position:fixed; pointer-events:none; z-index:0;
+    width:60vmax; height:60vmax; border-radius:50%;
+    filter:blur(90px); opacity:.28;
+    animation:float 22s ease-in-out infinite;
+  }
+  body::before{
+    background:radial-gradient(circle, #4ea1ff 0%, transparent 65%);
+    top:-20vmax; left:-15vmax;
+  }
+  body::after{
+    background:radial-gradient(circle, #7c5cff 0%, transparent 65%);
+    bottom:-25vmax; right:-15vmax; animation-delay:-11s;
+  }
+  @keyframes float{
+    0%,100%{transform:translate3d(0,0,0) scale(1)}
+    50%{transform:translate3d(4vmax,3vmax,0) scale(1.08)}
+  }
+
+  /* 网格暗纹 */
+  .grid-overlay{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(120,160,220,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120,160,220,0.045) 1px, transparent 1px);
+    background-size:48px 48px;
+    mask-image:radial-gradient(circle at 50% 30%, #000 30%, transparent 85%);
+    -webkit-mask-image:radial-gradient(circle at 50% 30%, #000 30%, transparent 85%);
+  }
+
+  .wrap{
+    position:relative; z-index:1;
+    max-width:1440px; margin:0 auto; padding:22px 16px 80px;
+  }
+
+  /* ============================================================
+     标题
+     ============================================================ */
+  .hero{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:16px; flex-wrap:wrap; margin-bottom:18px;
+  }
+  .hero h1{
+    font-size:24px; margin:0 0 6px; letter-spacing:.3px;
+    background:linear-gradient(90deg, #eaf1fb 0%, #7cc4ff 45%, #b18cff 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    font-weight:800;
+  }
+  .hero .sub{color:var(--sub); font-size:12.5px}
+  .live-badge{
+    display:inline-flex; align-items:center; gap:7px;
+    padding:6px 12px; border-radius:20px; font-size:12px;
+    background:rgba(49,224,160,.10); border:1px solid rgba(49,224,160,.35);
+    color:var(--good); font-weight:600;
+  }
+  .live-dot{
+    width:8px; height:8px; border-radius:50%;
+    background:var(--good); box-shadow:0 0 10px var(--good);
+    animation:pulse 1.6s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1; transform:scale(1)}
+    50%{opacity:.45; transform:scale(.85)}
+  }
+
+  /* ============================================================
+     玻璃卡片
+     ============================================================ */
+  .card{
+    position:relative;
+    background:var(--glass);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border:1px solid var(--glass-line);
+    border-radius:18px;
+    padding:18px 20px;
+    margin-bottom:16px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 20px 40px -24px rgba(0,0,0,0.7);
+    overflow:hidden;
+  }
+  .card::after{
+    content:""; position:absolute; inset:0; border-radius:inherit;
+    pointer-events:none;
+    background:linear-gradient(140deg, rgba(255,255,255,0.06), transparent 40%);
+    opacity:.7;
+  }
+  .card h2{
+    font-size:13px; margin:0 0 14px; color:var(--accent);
+    font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+    display:flex; align-items:center; gap:8px;
+  }
+  .card h2::before{
+    content:""; width:3px; height:14px; border-radius:2px;
+    background:linear-gradient(180deg, var(--accent), var(--accent-2));
+    box-shadow:var(--glow-blue);
+  }
+
+  .grid{display:grid; gap:14px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:960px){ .g2,.g4{grid-template-columns:1fr 1fr} }
+  @media(max-width:620px){ .g2,.g4{grid-template-columns:1fr} }
+
+  /* ============================================================
+     按钮
+     ============================================================ */
+  button{
+    position:relative; z-index:2;
+    background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    color:#04121f; border:none;
+    padding:11px 22px; border-radius:12px; font-size:13.5px;
+    font-weight:700; cursor:pointer; letter-spacing:.4px;
+    box-shadow:0 10px 24px -12px var(--accent), 0 0 0 1px rgba(255,255,255,.08) inset;
+    transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
+  }
+  button:hover{filter:brightness(1.08); transform:translateY(-1px)}
+  button:active{transform:translateY(0)}
+  button:disabled{opacity:.5; cursor:not-allowed; transform:none}
+
+  /* ============================================================
+     状态栏
+     ============================================================ */
+  .status-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+    gap:12px; margin-bottom:14px;
+  }
+  .status-item{
+    position:relative;
+    background:linear-gradient(160deg, rgba(30,45,70,.7), rgba(15,22,36,.7));
+    border:1px solid var(--glass-line);
+    border-radius:14px; padding:12px 14px;
+    overflow:hidden;
+  }
+  .status-item::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg, var(--accent), var(--accent-2));
+    opacity:.85;
+  }
+  .status-item .lbl{font-size:11px; color:var(--sub); margin-bottom:4px; letter-spacing:.4px}
+  .status-item .val{
+    font-size:18px; font-weight:800; font-variant-numeric:tabular-nums;
+    letter-spacing:.3px;
+  }
+  .status-item .val.accent{color:var(--accent)}
+  .status-item .val.purple{color:var(--purple)}
+  .status-item .val.good{color:var(--good)}
+
+  /* 预测结果面板 */
+  .result-panel{
+    position:relative;
+    background:
+      radial-gradient(600px 200px at 0% 0%, rgba(255,84,112,.18), transparent 70%),
+      linear-gradient(160deg, rgba(255,84,112,.10), rgba(15,22,36,.85));
+    border:1px solid rgba(255,84,112,.4);
+    border-radius:16px; padding:18px 20px; margin-bottom:14px;
+    box-shadow:0 0 0 1px rgba(255,255,255,.04) inset, 0 20px 40px -24px rgba(255,84,112,.5);
+    overflow:hidden;
+  }
+  .result-panel .head{
+    font-size:11.5px; color:var(--sub); letter-spacing:1.4px;
+    text-transform:uppercase; margin-bottom:6px;
+  }
+  .result-panel .big{
+    font-size:34px; font-weight:900; letter-spacing:1.5px;
+    background:linear-gradient(90deg, #ff8fa6, #ff5470);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 0 26px rgba(255,84,112,.4);
+    line-height:1.1;
+  }
+  .result-panel .buy{
+    font-size:19px; font-weight:800;
+    background:linear-gradient(90deg, #7ef0c0, #31e0a0);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    margin-top:4px;
+  }
+  .result-panel .foot{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    margin-top:14px; padding-top:12px;
+    border-top:1px solid rgba(255,255,255,.06);
+  }
+  .countdown{
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    font-size:22px; font-weight:800;
+    color:var(--accent-3);
+    text-shadow:0 0 18px rgba(34,211,238,.55);
+    min-width:52px; display:inline-block; text-align:center;
+  }
+
+  /* ============================================================
+     KPI 卡片
+     ============================================================ */
+  .kpi{
+    position:relative;
+    background:linear-gradient(160deg, rgba(30,45,70,.65), rgba(15,22,36,.75));
+    border:1px solid var(--glass-line);
+    border-radius:14px; padding:14px 16px;
+    overflow:hidden;
+    transition:border-color .2s ease, transform .2s ease;
+  }
+  .kpi:hover{
+    border-color:var(--glass-line-2);
+    transform:translateY(-2px);
+  }
+  .kpi::after{
+    content:""; position:absolute; right:-30px; top:-30px;
+    width:100px; height:100px; border-radius:50%;
+    background:radial-gradient(circle, rgba(78,161,255,.18), transparent 70%);
+    opacity:.9;
+  }
+  .kpi .v{
+    font-size:24px; font-weight:800; line-height:1.1;
+    font-variant-numeric:tabular-nums; letter-spacing:.3px;
+  }
+  .kpi .k{font-size:11.5px; color:var(--sub); margin-top:4px; letter-spacing:.4px}
+  .kpi .v.good{color:var(--good); text-shadow:0 0 20px rgba(49,224,160,.35)}
+  .kpi .v.bad{color:var(--bad); text-shadow:0 0 20px rgba(255,84,112,.35)}
+  .kpi .v.warn{color:var(--warn); text-shadow:0 0 20px rgba(255,188,66,.35)}
+  .kpi .v.purple{color:var(--purple); text-shadow:0 0 20px rgba(177,140,255,.35)}
+  .kpi .v.accent{color:var(--accent); text-shadow:0 0 20px rgba(78,161,255,.35)}
+
+  /* ============================================================
+     策略权重条
+     ============================================================ */
+  .strategy-bars{display:grid; gap:10px; margin-top:4px}
+  .sbar-row{
+    display:grid; grid-template-columns:120px 1fr 64px;
+    gap:12px; align-items:center;
+  }
+  @media(max-width:520px){
+    .sbar-row{grid-template-columns:96px 1fr 56px}
+  }
+  .sbar-label{font-size:12px; color:var(--txt-2); letter-spacing:.2px}
+  .sbar-track{
+    height:16px; border-radius:8px; overflow:hidden;
+    background:rgba(255,255,255,.05);
+    border:1px solid var(--glass-line);
+    position:relative;
+  }
+  .sbar-fill{
+    height:100%; border-radius:8px; transition:width .5s cubic-bezier(.4,0,.2,1);
+    position:relative;
+  }
+  .sbar-fill::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.25));
+    border-radius:inherit;
+  }
+  .sbar-val{
+    font-size:12px; font-family:ui-monospace,"SF Mono",Menlo,monospace;
+    text-align:right; font-weight:700;
+  }
+
+  /* ============================================================
+     提示
+     ============================================================ */
+  .alert{
+    display:flex; align-items:center; gap:10px;
+    padding:11px 16px; border-radius:12px; font-size:12.5px;
+    margin-bottom:16px;
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+  }
+  .alert-ok{
+    background:rgba(49,224,160,.10); border:1px solid rgba(49,224,160,.35);
+    color:#a8f0d0;
+  }
+  .alert-warn{
+    background:rgba(255,188,66,.10); border:1px solid rgba(255,188,66,.35);
+    color:#f5dc9e;
+  }
+  .alert-err{
+    background:rgba(255,84,112,.10); border:1px solid rgba(255,84,112,.4);
+    color:#ffb8c5;
+  }
+  .alert .dot{
+    width:8px; height:8px; border-radius:50%; flex-shrink:0;
+  }
+  .alert-ok .dot{background:var(--good); box-shadow:0 0 10px var(--good)}
+  .alert-warn .dot{background:var(--warn); box-shadow:0 0 10px var(--warn)}
+  .alert-err .dot{background:var(--bad); box-shadow:0 0 10px var(--bad)}
+
+  /* ============================================================
+     图表
+     ============================================================ */
+  canvas{width:100%; display:block}
+  .chart-box{position:relative; height:290px}
+  @media(max-width:620px){ .chart-box{height:230px} }
+  .note{
+    font-size:11px; color:var(--sub); margin-top:10px;
+    display:flex; gap:14px; flex-wrap:wrap;
+  }
+  .note .legend-dot{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px}
+
+  /* ============================================================
+     表格
+     ============================================================ */
+  table{width:100%; border-collapse:collapse; font-size:12px}
+  th,td{
+    padding:8px 10px; text-align:right;
+    border-bottom:1px solid rgba(120,160,220,.08);
+    white-space:nowrap;
+  }
+  th{
+    color:var(--sub); font-weight:600; font-size:10.5px;
+    letter-spacing:1px; text-transform:uppercase;
+    background:rgba(15,22,36,.9);
+    position:sticky; top:0; z-index:2;
+  }
+  th:first-child,td:first-child{text-align:left}
+  tbody tr{transition:background .15s ease}
+  tbody tr:hover{background:rgba(78,161,255,.05)}
+  .scroll{
+    max-height:360px; overflow:auto;
+    border:1px solid var(--glass-line); border-radius:12px;
+    background:rgba(10,15,26,.4);
+  }
+  .scroll::-webkit-scrollbar{width:8px; height:8px}
+  .scroll::-webkit-scrollbar-thumb{background:rgba(120,160,220,.25); border-radius:4px}
+  .scroll::-webkit-scrollbar-thumb:hover{background:rgba(120,160,220,.4)}
+
+  .hit{color:var(--good); font-weight:700}
+  .miss{color:var(--bad); font-weight:700}
+  .excl{color:var(--warn); font-weight:700}
+
+  /* 通用小工具 */
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 12px; border-radius:20px; font-size:11.5px;
+    background:rgba(30,45,70,.6); border:1px solid var(--glass-line);
+    color:var(--sub);
+  }
+  .divider{height:1px; background:var(--glass-line); margin:10px 0}
+
+  /* 入口卡片（初始态） */
+  .start-hero{
+    text-align:center; padding:48px 20px;
+  }
+  .start-hero .icon{
+    font-size:56px; margin-bottom:10px;
+    filter:drop-shadow(0 0 30px rgba(78,161,255,.5));
+  }
+  .start-hero h2{
+    font-size:20px; color:var(--txt); margin:0 0 8px;
+    letter-spacing:.4px;
+    justify-content:center;
+  }
+  .start-hero h2::before{display:none}
+  .start-hero p{color:var(--sub); margin:0 0 24px; font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="grid-overlay"></div>
+
+<div class="wrap">
+
+  <!-- ============ Hero ============ -->
+  <div class="hero">
+    <div>
+      <h1>PC28 · 四组合排除法实时预测</h1>
+      <div class="sub">数据源 pc28.help · 四策略动态加权 · 每 30 秒自动刷新</div>
+    </div>
+    <div class="live-badge">
+      <span class="live-dot"></span> LIVE
+    </div>
+  </div>
+
+  <!-- ============ 加载提示 ============ -->
+  <div id="alertBox" class="alert alert-warn">
+    <span class="dot"></span>
+    <span id="alertMsg">正在获取数据…</span>
+  </div>
+
+  <!-- ============ 初始态（未加载） ============ -->
+  <div class="card start-hero" id="startHero">
+    <div class="icon">📡</div>
+    <h2>正在连接数据源</h2>
+    <p>请稍候 · 数据加载后自动开启预测</p>
+    <div class="row" style="justify-content:center">
+      <button id="btnStartRefresh">立即刷新</button>
+    </div>
+  </div>
+
+  <!-- ============ 顶部状态区 ============ -->
+  <div class="card" id="statusCard" style="display:none">
+    <h2>实时状态</h2>
+    <div class="status-grid" id="latestGrid"></div>
+
+    <div class="result-panel">
+      <div class="head">下一期预测 · 应排除组合</div>
+      <div class="big" id="predExclude">—</div>
+      <div class="head" style="margin-top:12px">推荐买入</div>
+      <div class="buy" id="predBuy">—</div>
+      <div class="foot">
+        <div>
+          <div style="font-size:11px;color:var(--sub);letter-spacing:1px">距下次刷新</div>
+          <div class="countdown" id="countdown">30</div>
+        </div>
+        <div style="flex:1"></div>
+        <button id="btnRefresh">手动刷新</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="pill" id="lastUpdate">—</span>
+      <span class="pill" id="dataCount">0 期</span>
+    </div>
+  </div>
+
+  <!-- ============ 图表区 ============ -->
+  <div id="chartsArea" style="display:none">
+    <div class="grid g2">
+      <div class="card">
+        <h2>滚动 30 期命中率</h2>
+        <div class="chart-box"><canvas id="chartRoll"></canvas></div>
+        <div class="note">
+          <span><span class="legend-dot" style="background:#4ea1ff"></span>滚动命中率</span>
+          <span><span class="legend-dot" style="background:#ff5470"></span>85% 目标</span>
+          <span><span class="legend-dot" style="background:#5b6b7d"></span>75% 基线</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>累计命中率</h2>
+        <div class="chart-box"><canvas id="chartCum"></canvas></div>
+        <div class="note">
+          <span><span class="legend-dot" style="background:#31e0a0"></span>累计命中率</span>
+          <span><span class="legend-dot" style="background:#ff5470"></span>85% 目标</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ KPI 区 ============ -->
+  <div class="card" id="statsCard" style="display:none">
+    <h2>统计面板</h2>
+    <div class="grid g4" id="kpis"></div>
+  </div>
+
+  <!-- ============ 策略权重 ============ -->
+  <div class="card" id="weightsCard" style="display:none">
+    <h2>策略权重 · softmax(T=1.0)</h2>
+    <div class="strategy-bars" id="strategyBars"></div>
+    <div class="note">
+      <span>A · AR 和值预测</span>
+      <span>B · 一阶马尔可夫</span>
+      <span>C · 20 期频率偏离</span>
+      <span>D · 随机基线</span>
+    </div>
+  </div>
+
+  <!-- ============ 明细表 ============ -->
+  <div class="card" id="detailCard" style="display:none">
+    <h2>预测明细 · 最近 40 期</h2>
+    <div class="scroll">
+      <table id="detailTable">
+        <thead>
+          <tr>
+            <th>期号</th><th>和值</th><th>实际组合</th><th>排除组合</th><th>结果</th>
+            <th>μ̂</th><th>σ</th>
+            <th>策略明细</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ================================================================
+// 常量
+// ================================================================
+const API_URL = 'https://pc28.help/api/kj.json?nbr=80';
+const POLL_INTERVAL = 30;
+const MAX_RETRY = 3;
+const RETRY_DELAY = 5000;
+const MIN_DATA = 50;
+const TRAIN_MIN = 50;
+const EVAL_WIN = 30;
+const STRATEGY_WIN = 30;
+const REFIT_INTERVAL = 50;
+const MARKOV_INTERVAL = 100;
+
+const COMBOS = {
+  '大单': [15,17,19,21,23,25,27],
+  '大双': [14,16,18,20,22,24,26],
+  '小单': [1,3,5,7,9,11,13],
+  '小双': [0,2,4,6,8,10,12]
+};
+const NAMES = ['大单', '大双', '小单', '小双'];
+const STRAT_NAMES = ['A · AR 和值', 'B · 一阶马尔可夫', 'C · 20 期频率', 'D · 随机基线'];
+const STRAT_COLORS = ['#4ea1ff', '#31e0a0', '#ffbc42', '#7f93ab'];
+
+function valToCombo(v){
+  for(const n of NAMES) if(COMBOS[n].includes(v)) return n;
+  return null;
+}
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+
+// ================================================================
+// 数学工具
+// ================================================================
+function normCdf(z){
+  const t = 1/(1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp(-z*z/2);
+  const p = d*t*(0.3193815 + t*(-0.3565638 + t*(1.781478 + t*(-1.821256 + t*1.330274))));
+  return z > 0 ? 1 - p : p;
+}
+function normProbRange(mu, sigma, a, b){
+  if(sigma <= 0) return 0;
+  return normCdf((b - mu)/sigma) - normCdf((a - mu)/sigma);
+}
+function comboProb(comboName, mu, sigma){
+  let p = 0;
+  for(const v of COMBOS[comboName]) p += normProbRange(mu, sigma, v - 0.5, v + 0.5);
+  return p;
+}
+function comboProbabilities(mu, sigma){
+  const probs = {};
+  for(const c of NAMES) probs[c] = comboProb(c, mu, sigma);
+  const s = NAMES.reduce((a,c) => a + probs[c], 0) || 1;
+  for(const c of NAMES) probs[c] /= s;
+  let excluded = NAMES[0], lo = Infinity;
+  for(const c of NAMES) if(probs[c] < lo){ lo = probs[c]; excluded = c; }
+  return { probs, excluded };
+}
+function solveLinear(A, b){
+  const n = A.length;
+  const M = A.map((row, i) => row.concat([b[i]]));
+  for(let i = 0; i < n; i++){
+    let pivot = i;
+    for(let r = i + 1; r < n; r++) if(Math.abs(M[r][i]) > Math.abs(M[pivot][i])) pivot = r;
+    if(Math.abs(M[pivot][i]) < 1e-12) return null;
+    if(pivot !== i){ const tmp = M[i]; M[i] = M[pivot]; M[pivot] = tmp; }
+    for(let r = i + 1; r < n; r++){
+      const f = M[r][i] / M[i][i];
+      for(let c = i; c <= n; c++) M[r][c] -= f * M[i][c];
+    }
+  }
+  const x = new Array(n).fill(0);
+  for(let i = n - 1; i >= 0; i--){
+    let s = M[i][n];
+    for(let j = i + 1; j < n; j++) s -= M[i][j] * x[j];
+    x[i] = s / M[i][i];
+  }
+  return x;
+}
+function olsSolve(X, y){
+  const n = X.length, p = X[0].length;
+  const XtX = Array.from({length: p}, () => new Array(p).fill(0));
+  const Xty = new Array(p).fill(0);
+  for(let i = 0; i < n; i++){
+    for(let a = 0; a < p; a++){
+      Xty[a] += X[i][a] * y[i];
+      for(let b = 0; b < p; b++) XtX[a][b] += X[i][a] * X[i][b];
+    }
+  }
+  return solveLinear(XtX, Xty);
+}
+function movingAverage(arr, end, win){
+  const start = Math.max(0, end - win);
+  if(end === start) return arr[end];
+  let s = 0;
+  for(let i = start; i < end; i++) s += arr[i];
+  return s / (end - start);
+}
+function computeResiduals(arr, start, end, win){
+  const r = [];
+  for(let t = start; t < end; t++){
+    const ma = movingAverage(arr, t, win);
+    r.push(arr[t] - ma);
+  }
+  return r;
+}
+function aicBic(residuals, p){
+  const n = residuals.length;
+  if(n < p + 5) return { aic: Infinity, bic: Infinity };
+  const X = [], y = [];
+  for(let t = p; t < n; t++){
+    const row = [1];
+    for(let j = 1; j <= p; j++) row.push(residuals[t-j]);
+    X.push(row); y.push(residuals[t]);
+  }
+  const beta = olsSolve(X, y);
+  if(!beta) return { aic: Infinity, bic: Infinity };
+  let sse = 0;
+  for(let i = 0; i < X.length; i++){
+    let pred = 0;
+    for(let j = 0; j < beta.length; j++) pred += beta[j] * X[i][j];
+    sse += (y[i] - pred) ** 2;
+  }
+  if(sse <= 1e-12) return { aic: Infinity, bic: Infinity };
+  const m = X.length, k = p + 1;
+  return {
+    aic: m * Math.log(sse / m) + 2 * k,
+    bic: m * Math.log(sse / m) + Math.log(m) * k
+  };
+}
+function fitAR(residuals, p){
+  const n = residuals.length;
+  if(n < p + 5) return null;
+  const X = [], y = [];
+  for(let t = p; t < n; t++){
+    const row = [1];
+    for(let j = 1; j <= p; j++) row.push(residuals[t-j]);
+    X.push(row); y.push(residuals[t]);
+  }
+  const beta = olsSolve(X, y);
+  if(!beta) return null;
+  let sse = 0;
+  for(let i = 0; i < X.length; i++){
+    let pred = 0;
+    for(let j = 0; j < beta.length; j++) pred += beta[j] * X[i][j];
+    sse += (y[i] - pred) ** 2;
+  }
+  const dof = Math.max(1, X.length - beta.length);
+  return { coef: beta, sigma: Math.sqrt(sse / dof), n: X.length, p };
+}
+function selectBestP(residuals, maxP){
+  let best = { p: 1, score: Infinity };
+  for(let p = 1; p <= maxP; p++){
+    const { aic } = aicBic(residuals, p);
+    if(aic < best.score) best = { p, score: aic };
+  }
+  return best.p;
+}
+function forecastAR(arModel, recentResiduals){
+  if(!arModel) return 0;
+  const { coef, p } = arModel;
+  let pred = coef[0];
+  for(let j = 1; j <= p; j++){
+    const r = recentResiduals[recentResiduals.length - j];
+    pred += coef[j] * (Number.isFinite(r) ? r : 0);
+  }
+  return pred;
+}
+function optimizeWindow(values, t, minW, maxW, evalLen){
+  if(t < 30) return Math.min(20, minW);
+  const evalStart = Math.max(10, t - evalLen);
+  const evalEnd = t;
+  if(evalEnd - evalStart < 20) return 10;
+  let bestW = minW, bestRmse = Infinity;
+  for(let W = minW; W <= maxW; W += 5){
+    let sse = 0, cnt = 0;
+    for(let s = evalStart; s < evalEnd; s++){
+      const ma = movingAverage(values, s, W);
+      sse += (values[s] - ma) ** 2;
+      cnt++;
+    }
+    if(cnt === 0) continue;
+    const rmse = Math.sqrt(sse / cnt);
+    if(rmse < bestRmse){ bestRmse = rmse; bestW = W; }
+  }
+  return bestW;
+}
+function buildMarkov1(comboSeq, start, end){
+  const table = new Map();
+  for(const a of NAMES) table.set(a, { total: 0, counts: Object.fromEntries(NAMES.map(n=>[n,0])) });
+  for(let i = Math.max(1, start); i < end; i++){
+    const a = comboSeq[i-1], c = comboSeq[i];
+    if(!a || !c) continue;
+    const rec = table.get(a);
+    if(rec){ rec.total++; rec.counts[c]++; }
+  }
+  return table;
+}
+function markovPredict(table, prev, alpha, minSamples){
+  const rec = table.get(prev);
+  if(!rec || rec.total < minSamples) return null;
+  const probs = {};
+  let denom = 0;
+  for(const c of NAMES){
+    probs[c] = rec.counts[c] + alpha;
+    denom += probs[c];
+  }
+  for(const c of NAMES) probs[c] /= denom;
+  let excluded = NAMES[0], lo = Infinity;
+  for(const c of NAMES) if(probs[c] < lo){ lo = probs[c]; excluded = c; }
+  return { probs, excluded };
+}
+function freqPredict(comboSeq, t, win){
+  const start = Math.max(0, t - win);
+  const counts = Object.fromEntries(NAMES.map(n=>[n,0]));
+  for(let i = start; i < t; i++){
+    const c = comboSeq[i];
+    if(c) counts[c]++;
+  }
+  const total = Math.max(1, t - start);
+  const probs = {};
+  for(const c of NAMES) probs[c] = counts[c] / total;
+  let excluded = NAMES[0], lo = Infinity;
+  for(const c of NAMES) if(probs[c] < lo){ lo = probs[c]; excluded = c; }
+  return { probs, excluded };
+}
+let rngState = 987654321;
+function rng(){
+  rngState = (rngState * 1103515245 + 12345) & 0x7fffffff;
+  return rngState / 0x7fffffff;
+}
+function randomPredict(){
+  const probs = Object.fromEntries(NAMES.map(n=>[n,0.25]));
+  const excluded = NAMES[Math.floor(rng() * 4)];
+  return { probs, excluded };
+}
+function softmax(scores, T){
+  const maxS = Math.max(...scores);
+  const exps = scores.map(s => Math.exp((s - maxS) / T));
+  const sum = exps.reduce((a,b) => a + b, 0) || 1;
+  return exps.map(e => e / sum);
+}
+
+// ================================================================
+// 状态
+// ================================================================
+let state = {
+  rawData: [],
+  values: [],
+  comboSeq: [],
+  records: [],
+  hitsByStrategy: [],
+  currentAR: null,
+  currentW: 20,
+  currentSigma: 3.0,
+  markovTable: null,
+  markovBuiltAt: -1,
+  nextPrediction: null,
+  pollTimer: null,
+  countdownTimer: null,
+  countdown: POLL_INTERVAL
+};
+
+// ================================================================
+// 数据获取
+// ================================================================
+async function fetchDataWithRetry(){
+  for(let attempt = 1; attempt <= MAX_RETRY; attempt++){
+    try{
+      const res = await fetch(API_URL + '&_t=' + Date.now(), { cache: 'no-store' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if(json.message !== 'success' || !Array.isArray(json.data)){
+        throw new Error('返回格式异常');
+      }
+      return json.data;
+    } catch(err){
+      console.warn(`[fetch] 第 ${attempt} 次失败:`, err.message);
+      if(attempt < MAX_RETRY) await new Promise(r => setTimeout(r, RETRY_DELAY));
+      else throw err;
+    }
+  }
+}
+function parseRecord(item){
+  if(!item || typeof item !== 'object') return null;
+  const nbr = String(item.nbr || '').trim();
+  if(!nbr) return null;
+  const num = parseInt(item.num, 10);
+  if(!Number.isFinite(num) || num < 0 || num > 27) return null;
+  let combo = (item.combination || '').trim();
+  if(!NAMES.includes(combo)) combo = valToCombo(num);
+  if(!combo) return null;
+  return {
+    nbr, num, combination: combo,
+    number: item.number || '',
+    date: item.date || '',
+    time: item.time || ''
+  };
+}
+function mergeData(newItems){
+  const existing = new Map(state.rawData.map(r => [r.nbr, r]));
+  let added = 0;
+  for(const item of newItems){
+    const rec = parseRecord(item);
+    if(!rec) continue;
+    if(!existing.has(rec.nbr)){ existing.set(rec.nbr, rec); added++; }
+    else existing.set(rec.nbr, rec);
+  }
+  const arr = Array.from(existing.values());
+  arr.sort((a, b) => parseInt(a.nbr) - parseInt(b.nbr));
+  state.rawData = arr;
+  state.values = arr.map(r => r.num);
+  state.comboSeq = arr.map(r => r.combination);
+  return added;
+}
+
+// ================================================================
+// 预测引擎
+// ================================================================
+function refitAR(t){
+  const trainStart = Math.max(0, t - 500);
+  const trainEnd = t;
+  if(trainEnd - trainStart < 30) return null;
+  const residuals = computeResiduals(state.values, trainStart, trainEnd, state.currentW);
+  const dataLen = state.values.length;
+  const maxP = Math.max(1, Math.min(Math.floor(dataLen / 10), 10));
+  const bestP = selectBestP(residuals, maxP);
+  return fitAR(residuals, bestP);
+}
+function runBacktestIncremental(){
+  const values = state.values;
+  const comboSeq = state.comboSeq;
+  const n = values.length;
+  if(n < MIN_DATA) return;
+
+  const startT = Math.max(TRAIN_MIN, state.records.length + TRAIN_MIN);
+
+  if(!state.currentAR){
+    state.currentW = optimizeWindow(values, Math.min(TRAIN_MIN, n), 5, 50, Math.min(100, n));
+    state.currentAR = refitAR(TRAIN_MIN);
+    state.currentSigma = state.currentAR ? state.currentAR.sigma : 3.0;
+  }
+
+  for(let t = startT; t < n; t++){
+    const stepsDone = t - TRAIN_MIN;
+
+    if(stepsDone > 0 && stepsDone % REFIT_INTERVAL === 0){
+      state.currentW = optimizeWindow(values, t, 5, 50, Math.min(100, t));
+      state.currentAR = refitAR(t);
+      state.currentSigma = state.currentAR ? state.currentAR.sigma : 3.0;
+    }
+    if(state.markovTable === null || (stepsDone > 0 && stepsDone % MARKOV_INTERVAL === 0)){
+      state.markovTable = buildMarkov1(comboSeq, Math.max(0, t - 300), t);
+      state.markovBuiltAt = t;
+    }
+
+    let stratA = null;
+    if(state.currentAR){
+      const p = state.currentAR.p;
+      const recent = [];
+      for(let j = 0; j < p; j++){
+        const idx = t - 1 - j;
+        if(idx < 0){ recent.push(0); continue; }
+        const ma = movingAverage(values, idx, state.currentW);
+        recent.push(values[idx] - ma);
+      }
+      const rPred = forecastAR(state.currentAR, recent);
+      const ma = movingAverage(values, t, state.currentW);
+      const mu = clamp(ma + rPred, 0, 27);
+      const sigma = Math.max(state.currentSigma, 1.5);
+      const { probs, excluded } = comboProbabilities(mu, sigma);
+      stratA = { excluded, probs, mu, sigma };
+    }
+
+    let stratB = null;
+    if(state.markovTable && t >= 1){
+      const prev = comboSeq[t-1];
+      if(prev){
+        const r = markovPredict(state.markovTable, prev, 1.0, 3);
+        if(r) stratB = { excluded: r.excluded, probs: r.probs };
+      }
+    }
+
+    const stratC = freqPredict(comboSeq, t, 20);
+    const stratD = randomPredict();
+
+    const actual = comboSeq[t];
+    const hitA = stratA && stratA.excluded !== actual ? 1 : 0;
+    const hitB = stratB && stratB.excluded !== actual ? 1 : 0;
+    const hitC = stratC.excluded !== actual ? 1 : 0;
+    const hitD = stratD.excluded !== actual ? 1 : 0;
+
+    state.hitsByStrategy.push([hitA, hitB, hitC, hitD]);
+
+    const winStart = Math.max(0, state.hitsByStrategy.length - STRATEGY_WIN);
+    const acc = [0, 0, 0, 0];
+    const cnt = state.hitsByStrategy.length - winStart;
+    for(let i = winStart; i < state.hitsByStrategy.length; i++){
+      for(let k = 0; k < 4; k++) acc[k] += state.hitsByStrategy[i][k];
+    }
+    const accRates = acc.map(a => cnt > 0 ? a / cnt : 0.25);
+    const weights = softmax(accRates, 1.0);
+
+    const vote = Object.fromEntries(NAMES.map(n => [n, 0]));
+    if(stratA) vote[stratA.excluded] += weights[0];
+    if(stratB) vote[stratB.excluded] += weights[1];
+    vote[stratC.excluded] += weights[2];
+    vote[stratD.excluded] += weights[3];
+
+    let finalExcluded = NAMES[0], mx = -Infinity;
+    for(const c of NAMES) if(vote[c] > mx){ mx = vote[c]; finalExcluded = c; }
+
+    const hit = finalExcluded !== actual;
+
+    state.records.push({
+      t, nbr: state.rawData[t].nbr, value: values[t], actual, excluded: finalExcluded, hit,
+      mu: stratA ? stratA.mu : null,
+      sigma: stratA ? stratA.sigma : null,
+      weights: weights.slice(),
+      stratExcl: [
+        stratA ? stratA.excluded : null,
+        stratB ? stratB.excluded : null,
+        stratC.excluded,
+        stratD.excluded
+      ]
+    });
+  }
+}
+function predictNext(){
+  const values = state.values;
+  const comboSeq = state.comboSeq;
+  const n = values.length;
+  if(n < MIN_DATA) return null;
+
+  const t = n;
+  let stratA = null;
+  if(state.currentAR){
+    const p = state.currentAR.p;
+    const recent = [];
+    for(let j = 0; j < p; j++){
+      const idx = t - 1 - j;
+      if(idx < 0){ recent.push(0); continue; }
+      const ma = movingAverage(values, idx, state.currentW);
+      recent.push(values[idx] - ma);
+    }
+    const rPred = forecastAR(state.currentAR, recent);
+    const ma = movingAverage(values, t, state.currentW);
+    const mu = clamp(ma + rPred, 0, 27);
+    const sigma = Math.max(state.currentSigma, 1.5);
+    const { probs, excluded } = comboProbabilities(mu, sigma);
+    stratA = { excluded, probs, mu, sigma };
+  }
+
+  let stratB = null;
+  if(state.markovTable && t >= 1){
+    const prev = comboSeq[t-1];
+    if(prev){
+      const r = markovPredict(state.markovTable, prev, 1.0, 3);
+      if(r) stratB = { excluded: r.excluded, probs: r.probs };
+    }
+  }
+  const stratC = freqPredict(comboSeq, t, 20);
+  const stratD = randomPredict();
+
+  let weights;
+  if(state.hitsByStrategy.length < 5){
+    weights = [0.25, 0.25, 0.25, 0.25];
+  } else {
+    const winStart = Math.max(0, state.hitsByStrategy.length - STRATEGY_WIN);
+    const acc = [0, 0, 0, 0];
+    const cnt = state.hitsByStrategy.length - winStart;
+    for(let i = winStart; i < state.hitsByStrategy.length; i++){
+      for(let k = 0; k < 4; k++) acc[k] += state.hitsByStrategy[i][k];
+    }
+    const accRates = acc.map(a => cnt > 0 ? a / cnt : 0.25);
+    weights = softmax(accRates, 1.0);
+  }
+
+  const vote = Object.fromEntries(NAMES.map(n => [n, 0]));
+  if(stratA) vote[stratA.excluded] += weights[0];
+  if(stratB) vote[stratB.excluded] += weights[1];
+  vote[stratC.excluded] += weights[2];
+  vote[stratD.excluded] += weights[3];
+
+  let finalExcluded = NAMES[0], mx = -Infinity;
+  for(const c of NAMES) if(vote[c] > mx){ mx = vote[c]; finalExcluded = c; }
+
+  return {
+    excluded: finalExcluded,
+    buys: NAMES.filter(n => n !== finalExcluded),
+    weights,
+    mu: stratA ? stratA.mu : null,
+    sigma: stratA ? stratA.sigma : null,
+    stratExcl: [
+      stratA ? stratA.excluded : null,
+      stratB ? stratB.excluded : null,
+      stratC.excluded,
+      stratD.excluded
+    ]
+  };
+}
+
+// ================================================================
+// 统计
+// ================================================================
+function computeStats(){
+  const hits = state.records.map(r => r.hit ? 1 : 0);
+  if(!hits.length) return null;
+  const totalHit = hits.reduce((a,b)=>a+b,0) / hits.length;
+  const roll = [];
+  for(let i = 0; i + EVAL_WIN <= hits.length; i++){
+    let s = 0;
+    for(let j = 0; j < EVAL_WIN; j++) s += hits[i+j];
+    roll.push(s / EVAL_WIN);
+  }
+  let rollMean = 0, rollMin = 0, rollMax = 0, pct85 = 0, rollStd = 0;
+  if(roll.length){
+    rollMean = roll.reduce((a,b)=>a+b,0) / roll.length;
+    const v = roll.reduce((a,b)=>a+(b-rollMean)**2,0) / roll.length;
+    rollStd = Math.sqrt(v);
+    rollMin = Math.min(...roll);
+    rollMax = Math.max(...roll);
+    pct85 = roll.filter(x => x >= 0.85).length / roll.length;
+  }
+  let maxMiss = 0, cur = 0;
+  for(const h of hits){
+    cur = h ? 0 : cur + 1;
+    if(cur > maxMiss) maxMiss = cur;
+  }
+  return { totalHit, rollMean, rollStd, rollMin, rollMax, pct85, maxMiss, roll, hits };
+}
+
+// ================================================================
+// 渲染
+// ================================================================
+let chartRoll = null, chartCum = null;
+
+function renderLatest(){
+  const last = state.rawData[state.rawData.length - 1];
+  if(!last) return;
+
+  document.getElementById('startHero').style.display = 'none';
+  document.getElementById('statusCard').style.display = 'block';
+  document.getElementById('chartsArea').style.display = 'block';
+  document.getElementById('statsCard').style.display = 'block';
+  document.getElementById('weightsCard').style.display = 'block';
+  document.getElementById('detailCard').style.display = 'block';
+
+  document.getElementById('latestGrid').innerHTML = `
+    <div class="status-item"><div class="lbl">最新期号</div><div class="val">${last.nbr}</div></div>
+    <div class="status-item"><div class="lbl">开奖号码</div><div class="val accent">${last.number || '—'}</div></div>
+    <div class="status-item"><div class="lbl">和值</div><div class="val">${last.num}</div></div>
+    <div class="status-item"><div class="lbl">组合</div><div class="val purple">${last.combination}</div></div>
+    <div class="status-item"><div class="lbl">开奖时间</div><div class="val" style="font-size:13px">${last.date} ${last.time}</div></div>
+  `;
+
+  const pred = state.nextPrediction;
+  if(pred){
+    document.getElementById('predExclude').textContent = pred.excluded;
+    document.getElementById('predBuy').textContent = pred.buys.join(' · ');
+  } else {
+    document.getElementById('predExclude').textContent = '—';
+    document.getElementById('predBuy').textContent = '—';
+  }
+}
+function renderKPIs(){
+  const stats = computeStats();
+  if(!stats) return;
+  const kpis = [
+    { k: '总命中率', v: (stats.totalHit*100).toFixed(2)+'%',
+      cls: stats.totalHit >= 0.85 ? 'good' : stats.totalHit >= 0.75 ? 'warn' : 'bad' },
+    { k: '滚动 30 期均值', v: (stats.rollMean*100).toFixed(2)+'%',
+      cls: stats.rollMean >= 0.85 ? 'good' : stats.rollMean >= 0.75 ? 'warn' : 'bad' },
+    { k: '最差连续 30 期', v: (stats.rollMin*100).toFixed(2)+'%',
+      cls: stats.rollMin >= 0.80 ? 'good' : stats.rollMin >= 0.70 ? 'warn' : 'bad' },
+    { k: '≥85% 窗口占比', v: (stats.pct85*100).toFixed(1)+'%',
+      cls: stats.pct85 >= 0.90 ? 'good' : stats.pct85 >= 0.70 ? 'warn' : 'bad' },
+    { k: 'AR 阶数 p', v: state.currentAR ? state.currentAR.p : '—', cls: 'purple' },
+    { k: '移动平均窗口 W', v: state.currentW, cls: 'purple' },
+    { k: '残差 σ', v: state.currentSigma.toFixed(3), cls: 'accent' },
+    { k: '回测期数', v: state.records.length, cls: '' }
+  ];
+  document.getElementById('kpis').innerHTML = kpis.map(x =>
+    `<div class="kpi"><div class="v ${x.cls}">${x.v}</div><div class="k">${x.k}</div></div>`
+  ).join('');
+}
+function renderWeights(){
+  const pred = state.nextPrediction;
+  if(!pred) return;
+  document.getElementById('strategyBars').innerHTML = STRAT_NAMES.map((name, i) => {
+    const w = pred.weights[i] || 0;
+    const pct = (w * 100).toFixed(1);
+    return `<div class="sbar-row">
+      <div class="sbar-label">${name}</div>
+      <div class="sbar-track">
+        <div class="sbar-fill" style="width:${pct}%;background:linear-gradient(90deg, ${STRAT_COLORS[i]}cc, ${STRAT_COLORS[i]})"></div>
+      </div>
+      <div class="sbar-val" style="color:${STRAT_COLORS[i]}">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+function renderCharts(){
+  const stats = computeStats();
+  if(!stats) return;
+  const records = state.records;
+  const labels = records.map(r => r.nbr);
+  const rollData = new Array(records.length).fill(null);
+  for(let i = 0; i < stats.roll.length; i++){
+    rollData[i + EVAL_WIN - 1] = stats.roll[i] * 100;
+  }
+
+  const gridColor = 'rgba(120,160,220,0.08)';
+  const tickColor = '#7f93ab';
+
+  if(chartRoll) chartRoll.destroy();
+  chartRoll = new Chart(document.getElementById('chartRoll'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '滚动 30 期命中率', data: rollData,
+          borderColor: '#4ea1ff',
+          backgroundColor: (ctx) => {
+            const {ctx: c, chartArea} = ctx.chart;
+            if(!chartArea) return 'rgba(78,161,255,.12)';
+            const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            g.addColorStop(0, 'rgba(78,161,255,.32)');
+            g.addColorStop(1, 'rgba(78,161,255,.02)');
+            return g;
+          },
+          borderWidth: 2, pointRadius: 0, fill: true, tension: 0.2, spanGaps: true
+        },
+        {
+          label: '85% 目标', data: labels.map(() => 85),
+          borderColor: '#ff5470', borderWidth: 1.4, borderDash: [6,4], pointRadius: 0
+        },
+        {
+          label: '75% 基线', data: labels.map(() => 75),
+          borderColor: '#5b6b7d', borderWidth: 1, borderDash: [3,4], pointRadius: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: tickColor, maxTicksLimit: 6, font:{size:10} }, grid: { color: gridColor } },
+        y: { min: 0, max: 100, ticks: { color: tickColor, callback: v => v + '%', font:{size:10} }, grid: { color: gridColor } }
+      }
+    }
+  });
+
+  const cum = [];
+  let sum = 0;
+  for(let i = 0; i < stats.hits.length; i++){
+    sum += stats.hits[i];
+    cum.push(sum / (i + 1) * 100);
+  }
+
+  if(chartCum) chartCum.destroy();
+  chartCum = new Chart(document.getElementById('chartCum'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '累计命中率', data: cum,
+        borderColor: '#31e0a0',
+        backgroundColor: (ctx) => {
+          const {ctx: c, chartArea} = ctx.chart;
+          if(!chartArea) return 'rgba(49,224,160,.12)';
+          const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          g.addColorStop(0, 'rgba(49,224,160,.32)');
+          g.addColorStop(1, 'rgba(49,224,160,.02)');
+          return g;
+        },
+        borderWidth: 2, pointRadius: 0, fill: true, tension: 0.2
+      },
+      {
+        label: '85% 目标', data: labels.map(() => 85),
+        borderColor: '#ff5470', borderWidth: 1.4, borderDash: [6,4], pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: tickColor, maxTicksLimit: 6, font:{size:10} }, grid: { color: gridColor } },
+        y: { min: 40, max: 100, ticks: { color: tickColor, callback: v => v + '%', font:{size:10} }, grid: { color: gridColor } }
+      }
+    }
+  });
+}
+function renderTable(){
+  const tbody = document.querySelector('#detailTable tbody');
+  const records = state.records.slice(-40).reverse();
+  tbody.innerHTML = records.map(r => {
+    const sExcl = r.stratExcl.map((e, i) => `${['A','B','C','D'][i]}:${e || '—'}`).join(' ');
+    return `
+      <tr>
+        <td>${r.nbr}</td>
+        <td>${r.value}</td>
+        <td>${r.actual}</td>
+        <td class="excl">${r.excluded}</td>
+        <td class="${r.hit ? 'hit' : 'miss'}">${r.hit ? '命中' : '未中'}</td>
+        <td>${r.mu !== null ? r.mu.toFixed(2) : '—'}</td>
+        <td>${r.sigma !== null ? r.sigma.toFixed(3) : '—'}</td>
+        <td style="font-size:10.5px;color:#7f93ab">${sExcl}</td>
+      </tr>
+    `;
+  }).join('');
+}
+function renderAll(){
+  if(state.rawData.length === 0) return;
+  renderLatest();
+  renderKPIs();
+  renderWeights();
+  renderCharts();
+  renderTable();
+}
+
+// ================================================================
+// 主流程
+// ================================================================
+function setAlert(msg, cls){
+  const box = document.getElementById('alertBox');
+  box.className = 'alert alert-' + (cls || 'warn');
+  document.getElementById('alertMsg').textContent = msg;
+}
+async function fetchAndUpdate(silent){
+  try{
+    const items = await fetchDataWithRetry();
+    const added = mergeData(items);
+    document.getElementById('dataCount').textContent = state.rawData.length + ' 期';
+    document.getElementById('lastUpdate').textContent = '更新于 ' + new Date().toLocaleTimeString();
+
+    if(state.rawData.length < MIN_DATA){
+      setAlert(`数据不足（当前 ${state.rawData.length} 期，需要至少 ${MIN_DATA} 期），请等待积累。`, 'warn');
+      return;
+    }
+    runBacktestIncremental();
+    state.nextPrediction = predictNext();
+    renderAll();
+
+    if(added > 0 || !silent){
+      setAlert(`已加载 ${state.rawData.length} 期数据 · 新增 ${added} 期 · 预测已更新`, 'ok');
+    } else {
+      setAlert(`数据已是最新 · 共 ${state.rawData.length} 期`, 'ok');
+    }
+  } catch(err){
+    console.error(err);
+    setAlert('数据获取异常：' + err.message, 'err');
+  }
+}
+function startCountdown(){
+  if(state.countdownTimer) clearInterval(state.countdownTimer);
+  state.countdown = POLL_INTERVAL;
+  document.getElementById('countdown').textContent = state.countdown;
+  state.countdownTimer = setInterval(() => {
+    state.countdown--;
+    document.getElementById('countdown').textContent = Math.max(0, state.countdown);
+    if(state.countdown <= 0) state.countdown = POLL_INTERVAL;
+  }, 1000);
+}
+function startPolling(){
+  if(state.pollTimer) clearInterval(state.pollTimer);
+  state.pollTimer = setInterval(() => {
+    fetchAndUpdate(true);
+    state.countdown = POLL_INTERVAL;
+  }, POLL_INTERVAL * 1000);
+}
+
+// ================================================================
+// 初始化
+// ================================================================
+document.getElementById('btnRefresh').onclick = () => {
+  fetchAndUpdate(false);
+  state.countdown = POLL_INTERVAL;
+};
+document.getElementById('btnStartRefresh').onclick = () => {
+  fetchAndUpdate(false);
+};
+
+(async function init(){
+  setAlert('正在获取数据…', 'warn');
+  await fetchAndUpdate(false);
+  startCountdown();
+  startPolling();
+})();
+
+</script>
+</body>
+</html>
