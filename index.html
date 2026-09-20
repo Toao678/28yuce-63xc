@@ -3,29 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PC28 · 四组合排除法实时预测</title>
+<title>PC28 · 四组合排除法实时预测（记忆库版）</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-  /* ============================================================
-     主题：暗夜霓虹
-     ============================================================ */
   :root{
-    --bg-0:#05070d;
-    --bg-1:#0a0f1a;
-    --bg-2:#0f1524;
+    --bg-0:#05070d; --bg-1:#0a0f1a; --bg-2:#0f1524;
     --glass:rgba(22,32,50,0.55);
     --glass-line:rgba(80,120,180,0.18);
     --glass-line-2:rgba(120,160,220,0.30);
-    --txt:#eaf1fb;
-    --txt-2:#c2cfe0;
-    --sub:#7f93ab;
-    --accent:#4ea1ff;
-    --accent-2:#7c5cff;
-    --accent-3:#22d3ee;
-    --good:#31e0a0;
-    --bad:#ff5470;
-    --warn:#ffbc42;
-    --purple:#b18cff;
+    --txt:#eaf1fb; --txt-2:#c2cfe0; --sub:#7f93ab;
+    --accent:#4ea1ff; --accent-2:#7c5cff; --accent-3:#22d3ee;
+    --good:#31e0a0; --bad:#ff5470; --warn:#ffbc42; --purple:#b18cff;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -38,8 +26,7 @@
       radial-gradient(1000px 700px at 110% 10%, rgba(124,92,255,0.16), transparent 60%),
       radial-gradient(900px 600px at 50% 120%, rgba(34,211,238,0.10), transparent 60%),
       linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 45%, var(--bg-2) 100%);
-    background-attachment:fixed;
-    overflow-x:hidden;
+    background-attachment:fixed; overflow-x:hidden;
   }
   body::before, body::after{
     content:""; position:fixed; pointer-events:none; z-index:0;
@@ -47,18 +34,9 @@
     filter:blur(90px); opacity:.28;
     animation:float 22s ease-in-out infinite;
   }
-  body::before{
-    background:radial-gradient(circle, #4ea1ff 0%, transparent 65%);
-    top:-20vmax; left:-15vmax;
-  }
-  body::after{
-    background:radial-gradient(circle, #7c5cff 0%, transparent 65%);
-    bottom:-25vmax; right:-15vmax; animation-delay:-11s;
-  }
-  @keyframes float{
-    0%,100%{transform:translate3d(0,0,0) scale(1)}
-    50%{transform:translate3d(4vmax,3vmax,0) scale(1.08)}
-  }
+  body::before{background:radial-gradient(circle, #4ea1ff 0%, transparent 65%); top:-20vmax; left:-15vmax;}
+  body::after{background:radial-gradient(circle, #7c5cff 0%, transparent 65%); bottom:-25vmax; right:-15vmax; animation-delay:-11s;}
+  @keyframes float{0%,100%{transform:translate3d(0,0,0) scale(1)} 50%{transform:translate3d(4vmax,3vmax,0) scale(1.08)}}
   .grid-overlay{
     position:fixed; inset:0; z-index:0; pointer-events:none;
     background-image:
@@ -68,20 +46,13 @@
     mask-image:radial-gradient(circle at 50% 30%, #000 30%, transparent 85%);
     -webkit-mask-image:radial-gradient(circle at 50% 30%, #000 30%, transparent 85%);
   }
-  .wrap{
-    position:relative; z-index:1;
-    max-width:1440px; margin:0 auto; padding:22px 16px 80px;
-  }
+  .wrap{position:relative; z-index:1; max-width:1440px; margin:0 auto; padding:22px 16px 80px;}
 
-  .hero{
-    display:flex; align-items:flex-end; justify-content:space-between;
-    gap:16px; flex-wrap:wrap; margin-bottom:18px;
-  }
+  .hero{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px;}
   .hero h1{
     font-size:24px; margin:0 0 6px; letter-spacing:.3px;
     background:linear-gradient(90deg, #eaf1fb 0%, #7cc4ff 45%, #b18cff 100%);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    font-weight:800;
+    -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:800;
   }
   .hero .sub{color:var(--sub); font-size:12.5px}
   .live-badge{
@@ -90,46 +61,26 @@
     background:rgba(49,224,160,.10); border:1px solid rgba(49,224,160,.35);
     color:var(--good); font-weight:600;
   }
-  .live-dot{
-    width:8px; height:8px; border-radius:50%;
-    background:var(--good); box-shadow:0 0 10px var(--good);
-    animation:pulse 1.6s infinite;
-  }
-  @keyframes pulse{
-    0%,100%{opacity:1; transform:scale(1)}
-    50%{opacity:.45; transform:scale(.85)}
-  }
+  .live-dot{width:8px; height:8px; border-radius:50%; background:var(--good); box-shadow:0 0 10px var(--good); animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1; transform:scale(1)} 50%{opacity:.45; transform:scale(.85)}}
 
   .card{
-    position:relative;
-    background:var(--glass);
-    backdrop-filter: blur(18px) saturate(140%);
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
-    border:1px solid var(--glass-line);
-    border-radius:18px;
-    padding:18px 20px;
-    margin-bottom:16px;
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.04) inset,
-      0 20px 40px -24px rgba(0,0,0,0.7);
+    position:relative; background:var(--glass);
+    backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border:1px solid var(--glass-line); border-radius:18px;
+    padding:18px 20px; margin-bottom:16px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 20px 40px -24px rgba(0,0,0,0.7);
     overflow:hidden;
   }
-  .card::after{
-    content:""; position:absolute; inset:0; border-radius:inherit;
-    pointer-events:none;
-    background:linear-gradient(140deg, rgba(255,255,255,0.06), transparent 40%);
-    opacity:.7;
-  }
+  .card::after{content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background:linear-gradient(140deg, rgba(255,255,255,0.06), transparent 40%); opacity:.7;}
   .card h2{
     font-size:13px; margin:0 0 14px; color:var(--accent);
     font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
     display:flex; align-items:center; gap:8px;
   }
-  .card h2::before{
-    content:""; width:3px; height:14px; border-radius:2px;
-    background:linear-gradient(180deg, var(--accent), var(--accent-2));
-  }
-
+  .card h2::before{content:""; width:3px; height:14px; border-radius:2px;
+    background:linear-gradient(180deg, var(--accent), var(--accent-2));}
   .grid{display:grid; gap:14px}
   .g2{grid-template-columns:1fr 1fr}
   .g4{grid-template-columns:repeat(4,1fr)}
@@ -139,8 +90,7 @@
   button{
     position:relative; z-index:2;
     background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
-    color:#04121f; border:none;
-    padding:11px 22px; border-radius:12px; font-size:13.5px;
+    color:#04121f; border:none; padding:11px 22px; border-radius:12px; font-size:13.5px;
     font-weight:700; cursor:pointer; letter-spacing:.4px;
     box-shadow:0 10px 24px -12px var(--accent), 0 0 0 1px rgba(255,255,255,.08) inset;
     transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
@@ -149,35 +99,21 @@
   button:active{transform:translateY(0)}
   button:disabled{opacity:.5; cursor:not-allowed; transform:none}
   .btn-clear{
-    background:transparent; color:var(--sub);
-    padding:6px 12px; font-size:11.5px;
-    border:1px solid var(--glass-line);
-    box-shadow:none;
-    font-weight:500;
+    background:transparent; color:var(--sub); padding:6px 12px; font-size:11.5px;
+    border:1px solid var(--glass-line); box-shadow:none; font-weight:500;
   }
   .btn-clear:hover{color:var(--bad); border-color:rgba(255,84,112,.4); filter:none}
 
-  .status-grid{
-    display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
-    gap:12px; margin-bottom:14px;
-  }
+  .status-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:14px;}
   .status-item{
     position:relative;
     background:linear-gradient(160deg, rgba(30,45,70,.7), rgba(15,22,36,.7));
-    border:1px solid var(--glass-line);
-    border-radius:14px; padding:12px 14px;
-    overflow:hidden;
+    border:1px solid var(--glass-line); border-radius:14px; padding:12px 14px; overflow:hidden;
   }
-  .status-item::before{
-    content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
-    background:linear-gradient(180deg, var(--accent), var(--accent-2));
-    opacity:.85;
-  }
+  .status-item::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg, var(--accent), var(--accent-2)); opacity:.85;}
   .status-item .lbl{font-size:11px; color:var(--sub); margin-bottom:4px; letter-spacing:.4px}
-  .status-item .val{
-    font-size:18px; font-weight:800; font-variant-numeric:tabular-nums;
-    letter-spacing:.3px;
-  }
+  .status-item .val{font-size:18px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:.3px;}
   .status-item .val.accent{color:var(--accent)}
   .status-item .val.purple{color:var(--purple)}
   .status-item .val.good{color:var(--good)}
@@ -187,96 +123,58 @@
     background:
       radial-gradient(600px 200px at 0% 0%, rgba(255,84,112,.18), transparent 70%),
       linear-gradient(160deg, rgba(255,84,112,.10), rgba(15,22,36,.85));
-    border:1px solid rgba(255,84,112,.4);
-    border-radius:16px; padding:18px 20px; margin-bottom:14px;
+    border:1px solid rgba(255,84,112,.4); border-radius:16px; padding:18px 20px; margin-bottom:14px;
     box-shadow:0 0 0 1px rgba(255,255,255,.04) inset, 0 20px 40px -24px rgba(255,84,112,.5);
     overflow:hidden;
   }
-  .result-panel .head{
-    font-size:11.5px; color:var(--sub); letter-spacing:1.4px;
-    text-transform:uppercase; margin-bottom:6px;
-  }
+  .result-panel .head{font-size:11.5px; color:var(--sub); letter-spacing:1.4px; text-transform:uppercase; margin-bottom:6px;}
   .result-panel .big{
     font-size:34px; font-weight:900; letter-spacing:1.5px;
     background:linear-gradient(90deg, #ff8fa6, #ff5470);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    line-height:1.1;
+    -webkit-background-clip:text; background-clip:text; color:transparent; line-height:1.1;
   }
   .result-panel .buy{
     font-size:19px; font-weight:800;
     background:linear-gradient(90deg, #7ef0c0, #31e0a0);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    margin-top:4px;
+    -webkit-background-clip:text; background-clip:text; color:transparent; margin-top:4px;
   }
-  .result-panel .foot{
-    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-    margin-top:14px; padding-top:12px;
-    border-top:1px solid rgba(255,255,255,.06);
-  }
+  .result-panel .foot{display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,.06);}
   .countdown{
     font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-    font-size:22px; font-weight:800;
-    color:var(--accent-3);
+    font-size:22px; font-weight:800; color:var(--accent-3);
     min-width:52px; display:inline-block; text-align:center;
   }
 
   .kpi{
     position:relative;
     background:linear-gradient(160deg, rgba(30,45,70,.65), rgba(15,22,36,.75));
-    border:1px solid var(--glass-line);
-    border-radius:14px; padding:14px 16px;
-    overflow:hidden;
+    border:1px solid var(--glass-line); border-radius:14px; padding:14px 16px; overflow:hidden;
     transition:border-color .2s ease, transform .2s ease;
   }
   .kpi:hover{border-color:var(--glass-line-2); transform:translateY(-2px)}
-  .kpi::after{
-    content:""; position:absolute; right:-30px; top:-30px;
+  .kpi::after{content:""; position:absolute; right:-30px; top:-30px;
     width:100px; height:100px; border-radius:50%;
-    background:radial-gradient(circle, rgba(78,161,255,.18), transparent 70%);
-    opacity:.9;
-  }
-  .kpi .v{
-    font-size:24px; font-weight:800; line-height:1.1;
-    font-variant-numeric:tabular-nums; letter-spacing:.3px;
-  }
+    background:radial-gradient(circle, rgba(78,161,255,.18), transparent 70%); opacity:.9;}
+  .kpi .v{font-size:24px; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; letter-spacing:.3px;}
   .kpi .k{font-size:11.5px; color:var(--sub); margin-top:4px; letter-spacing:.4px}
-  .kpi .v.good{color:var(--good)}
-  .kpi .v.bad{color:var(--bad)}
-  .kpi .v.warn{color:var(--warn)}
-  .kpi .v.purple{color:var(--purple)}
-  .kpi .v.accent{color:var(--accent)}
+  .kpi .v.good{color:var(--good)} .kpi .v.bad{color:var(--bad)}
+  .kpi .v.warn{color:var(--warn)} .kpi .v.purple{color:var(--purple)} .kpi .v.accent{color:var(--accent)}
 
   .strategy-bars{display:grid; gap:10px; margin-top:4px}
   .sbar-row{display:grid; grid-template-columns:120px 1fr 64px; gap:12px; align-items:center}
   @media(max-width:520px){ .sbar-row{grid-template-columns:96px 1fr 56px} }
   .sbar-label{font-size:12px; color:var(--txt-2); letter-spacing:.2px}
-  .sbar-track{
-    height:16px; border-radius:8px; overflow:hidden;
-    background:rgba(255,255,255,.05);
-    border:1px solid var(--glass-line);
-    position:relative;
-  }
-  .sbar-fill{
-    height:100%; border-radius:8px; transition:width .5s cubic-bezier(.4,0,.2,1);
-    position:relative;
-  }
-  .sbar-fill::after{
-    content:""; position:absolute; inset:0;
-    background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.25));
-    border-radius:inherit;
-  }
-  .sbar-val{
-    font-size:12px; font-family:ui-monospace,"SF Mono",Menlo,monospace;
-    text-align:right; font-weight:700;
-  }
+  .sbar-track{height:16px; border-radius:8px; overflow:hidden;
+    background:rgba(255,255,255,.05); border:1px solid var(--glass-line); position:relative;}
+  .sbar-fill{height:100%; border-radius:8px; transition:width .5s cubic-bezier(.4,0,.2,1); position:relative;}
+  .sbar-fill::after{content:""; position:absolute; inset:0;
+    background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.25)); border-radius:inherit;}
+  .sbar-val{font-size:12px; font-family:ui-monospace,"SF Mono",Menlo,monospace; text-align:right; font-weight:700;}
 
-  .alert{
-    display:flex; align-items:center; gap:10px;
-    padding:11px 16px; border-radius:12px; font-size:12.5px;
-    margin-bottom:16px;
-    backdrop-filter:blur(10px);
-    -webkit-backdrop-filter:blur(10px);
-  }
+  .alert{display:flex; align-items:center; gap:10px;
+    padding:11px 16px; border-radius:12px; font-size:12.5px; margin-bottom:16px;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);}
   .alert-ok{background:rgba(49,224,160,.10); border:1px solid rgba(49,224,160,.35); color:#a8f0d0}
   .alert-warn{background:rgba(255,188,66,.10); border:1px solid rgba(255,188,66,.35); color:#f5dc9e}
   .alert-err{background:rgba(255,84,112,.10); border:1px solid rgba(255,84,112,.4); color:#ffb8c5}
@@ -288,66 +186,46 @@
   canvas{width:100%; display:block}
   .chart-box{position:relative; height:290px}
   @media(max-width:620px){ .chart-box{height:230px} }
-  .note{
-    font-size:11px; color:var(--sub); margin-top:10px;
-    display:flex; gap:14px; flex-wrap:wrap;
-  }
+  .note{font-size:11px; color:var(--sub); margin-top:10px; display:flex; gap:14px; flex-wrap:wrap;}
   .note .legend-dot{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px}
 
   table{width:100%; border-collapse:collapse; font-size:12px}
-  th,td{
-    padding:8px 10px; text-align:right;
-    border-bottom:1px solid rgba(120,160,220,.08);
-    white-space:nowrap;
-  }
-  th{
-    color:var(--sub); font-weight:600; font-size:10.5px;
-    letter-spacing:1px; text-transform:uppercase;
-    background:rgba(15,22,36,.9);
-    position:sticky; top:0; z-index:2;
-  }
+  th,td{padding:8px 10px; text-align:right; border-bottom:1px solid rgba(120,160,220,.08); white-space:nowrap;}
+  th{color:var(--sub); font-weight:600; font-size:10.5px; letter-spacing:1px; text-transform:uppercase;
+    background:rgba(15,22,36,.9); position:sticky; top:0; z-index:2;}
   th:first-child,td:first-child{text-align:left}
   tbody tr{transition:background .15s ease}
   tbody tr:hover{background:rgba(78,161,255,.05)}
-  .scroll{
-    max-height:360px; overflow:auto;
-    border:1px solid var(--glass-line); border-radius:12px;
-    background:rgba(10,15,26,.4);
-  }
+  .scroll{max-height:360px; overflow:auto; border:1px solid var(--glass-line); border-radius:12px; background:rgba(10,15,26,.4);}
   .scroll::-webkit-scrollbar{width:8px; height:8px}
   .scroll::-webkit-scrollbar-thumb{background:rgba(120,160,220,.25); border-radius:4px}
-
   .hit{color:var(--good); font-weight:700}
   .miss{color:var(--bad); font-weight:700}
   .excl{color:var(--warn); font-weight:700}
 
   .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-  .pill{
-    display:inline-flex; align-items:center; gap:6px;
+  .pill{display:inline-flex; align-items:center; gap:6px;
     padding:5px 12px; border-radius:20px; font-size:11.5px;
-    background:rgba(30,45,70,.6); border:1px solid var(--glass-line);
-    color:var(--sub);
-  }
+    background:rgba(30,45,70,.6); border:1px solid var(--glass-line); color:var(--sub);}
+  .pill.ok{color:var(--good); border-color:rgba(49,224,160,.4)}
+  .pill.warn{color:var(--warn); border-color:rgba(255,188,66,.4)}
 
   .start-hero{text-align:center; padding:48px 20px}
-  .start-hero .icon{
-    font-size:56px; margin-bottom:10px;
-    filter:drop-shadow(0 0 30px rgba(78,161,255,.5));
-  }
-  .start-hero h2{
-    font-size:20px; color:var(--txt); margin:0 0 8px;
-    letter-spacing:.4px; justify-content:center;
-  }
+  .start-hero .icon{font-size:56px; margin-bottom:10px; filter:drop-shadow(0 0 30px rgba(78,161,255,.5));}
+  .start-hero h2{font-size:20px; color:var(--txt); margin:0 0 8px; letter-spacing:.4px; justify-content:center;}
   .start-hero h2::before{display:none}
   .start-hero p{color:var(--sub); margin:0 0 24px; font-size:13px}
 
-  .bottom-bar{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:12px; flex-wrap:wrap;
-    margin-top:20px; padding-top:16px;
-    border-top:1px solid var(--glass-line);
-    font-size:11.5px; color:var(--sub);
+  .bottom-bar{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    margin-top:20px; padding-top:16px; border-top:1px solid var(--glass-line);
+    font-size:11.5px; color:var(--sub);}
+  .mem-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 11px; border-radius:20px; font-size:11.5px;
+    background:rgba(78,161,255,.10); border:1px solid rgba(78,161,255,.35);
+    color:var(--accent); font-weight:600; letter-spacing:.3px;
   }
+  .mem-dot{width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent)}
 </style>
 </head>
 <body>
@@ -359,9 +237,12 @@
   <div class="hero">
     <div>
       <h1>PC28 · 四组合排除法实时预测</h1>
-      <div class="sub">数据源 pc28.help · 本地累积 · 四策略动态加权 · 每 30 秒自动刷新</div>
+      <div class="sub">IndexedDB 记忆库 · 四策略动态加权 · 每 30 秒自动刷新 · 全量历史不丢失</div>
     </div>
-    <div class="live-badge"><span class="live-dot"></span>LIVE</div>
+    <div class="row">
+      <div class="mem-badge"><span class="mem-dot"></span><span id="memBadge">本地记忆 0 期</span></div>
+      <div class="live-badge"><span class="live-dot"></span>LIVE</div>
+    </div>
   </div>
 
   <div id="alertBox" class="alert alert-warn">
@@ -370,9 +251,9 @@
   </div>
 
   <div class="card start-hero" id="startHero">
-    <div class="icon">📡</div>
-    <h2>正在连接数据源</h2>
-    <p>请稍候 · 数据加载后自动开启预测</p>
+    <div class="icon">🧠</div>
+    <h2>正在唤醒本地记忆库</h2>
+    <p>IndexedDB 读取 → 接口增量补新 → 自动预测</p>
     <div class="row" style="justify-content:center">
       <button id="btnStartRefresh">立即刷新</button>
     </div>
@@ -457,8 +338,8 @@
   </div>
 
   <div class="bottom-bar">
-    <div id="footerInfo">已累积 0 期数据</div>
-    <button id="btnClear" class="btn-clear">清除本地数据并重新开始</button>
+    <div id="footerInfo">本地记忆 0 期</div>
+    <button id="btnClear" class="btn-clear">清除记忆库重新初始化</button>
   </div>
 
 </div>
@@ -468,17 +349,23 @@
 // 常量
 // ================================================================
 const API_URL = 'https://pc28.help/api/kj.json?nbr=80';
-const POLL_INTERVAL = 30;
+const POLL_INTERVAL = 30;      // 秒
 const MAX_RETRY = 3;
-const RETRY_DELAY = 5000;
+const RETRY_DELAY = 5000;      // ms
 const MIN_DATA = 50;
 const TRAIN_MIN = 50;
 const EVAL_WIN = 30;
 const STRATEGY_WIN = 30;
 const REFIT_INTERVAL = 50;
 const MARKOV_INTERVAL = 100;
-const STORAGE_KEY = 'pc28_history_data';
-const MAX_HISTORY = 5000;
+
+// 存储配置
+const IDB_NAME = 'pc28_memory_db';
+const IDB_STORE = 'history';
+const IDB_VERSION = 1;
+const IDB_MAX = 10000;         // IndexedDB 上限
+const LS_KEY = 'pc28_memory';   // localStorage 兜底键（与需求一致）
+const LS_MAX = 5000;           // localStorage 上限
 
 const COMBOS = {
   '大单': [15,17,19,21,23,25,27],
@@ -709,119 +596,179 @@ function softmax(scores, T){
 }
 
 // ================================================================
-// 【修复重点】本地存储 & 数据合并
+// 【核心】记忆库：IndexedDB 优先 + localStorage 兜底
+// 严格约束：只做 get/put/add，绝不 clear() / removeItem()
 // ================================================================
+const Memory = (() => {
+  let idb = null;
+  let useIDB = false;
 
-/** 从 localStorage 读取完整数据；任何异常返回空数组，不修改存储 */
-function readStorage(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw){
-      console.log('[storage] 无本地数据');
+  // 打开 IndexedDB（不升级数据结构，仅建库/store）
+  async function openIDB(){
+    if(!('indexedDB' in window)) throw new Error('IndexedDB 不可用');
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if(!db.objectStoreNames.contains(IDB_STORE)){
+          const store = db.createObjectStore(IDB_STORE, { keyPath: 'nbr' });
+          store.createIndex('nbr_num', 'nbr', { unique: true });
+        }
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+      req.onblocked = () => reject(new Error('IndexedDB blocked'));
+    });
+  }
+
+  async function init(){
+    try{
+      idb = await openIDB();
+      useIDB = true;
+      console.log('[Memory] IndexedDB 已就绪');
+    } catch(e){
+      console.warn('[Memory] IndexedDB 不可用，改用 localStorage 兜底:', e);
+      idb = null;
+      useIDB = false;
+    }
+  }
+
+  // 读取全量（升序）
+  async function getAll(){
+    if(useIDB){
+      return new Promise((resolve, reject) => {
+        try{
+          const tx = idb.transaction(IDB_STORE, 'readonly');
+          const store = tx.objectStore(IDB_STORE);
+          const req = store.getAll();
+          req.onsuccess = () => {
+            const arr = req.result || [];
+            arr.sort((a,b) => parseInt(a.nbr) - parseInt(b.nbr));
+            resolve(arr);
+          };
+          req.onerror = (e) => reject(e.target.error);
+        } catch(e){ reject(e); }
+      });
+    }
+    // localStorage 兜底
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if(!raw) return [];
+      const arr = JSON.parse(raw);
+      if(!Array.isArray(arr)) return [];
+      const valid = arr.filter(r =>
+        r && typeof r.nbr === 'string' && r.nbr.length > 0 &&
+        Number.isFinite(r.num) && r.num >= 0 && r.num <= 27 &&
+        NAMES.includes(r.combination)
+      );
+      valid.sort((a,b) => parseInt(a.nbr) - parseInt(b.nbr));
+      return valid;
+    } catch(e){
+      console.warn('[Memory] localStorage 读取失败:', e);
       return [];
     }
-    const arr = JSON.parse(raw);
-    if(!Array.isArray(arr)){
-      console.warn('[storage] 存储内容不是数组，忽略');
-      return [];
+  }
+
+  // 批量追加（只增不改，可容忍同 nbr 覆盖，但外部已保证去重）
+  async function putMany(records){
+    if(!records.length) return 0;
+    if(useIDB){
+      return new Promise((resolve, reject) => {
+        try{
+          const tx = idb.transaction(IDB_STORE, 'readwrite');
+          const store = tx.objectStore(IDB_STORE);
+          for(const r of records){
+            store.put(r);   // put：nbr 存在则更新、不存在则新增；不会清库
+          }
+          tx.oncomplete = () => resolve(records.length);
+          tx.onerror = (e) => reject(e.target.error);
+        } catch(e){ reject(e); }
+      });
     }
-    const valid = arr.filter(r =>
-      r && typeof r.nbr === 'string' && r.nbr.length > 0 &&
-      Number.isFinite(r.num) && r.num >= 0 && r.num <= 27 &&
-      NAMES.includes(r.combination)
-    );
-    console.log(`[storage] 读取 ${arr.length} 条，有效 ${valid.length} 条`);
-    return valid;
-  } catch(e){
-    console.warn('[storage] 读取失败:', e);
-    return [];
-  }
-}
-
-/** 写入 localStorage；仅在这里执行“超上限裁剪”，不影响内存数据 */
-function writeStorage(arr){
-  try{
-    let toSave = arr;
-    if(toSave.length > MAX_HISTORY){
-      // 升序排序后取最新 MAX_HISTORY 条
-      const sorted = toSave.slice().sort((a,b) => parseInt(a.nbr) - parseInt(b.nbr));
-      toSave = sorted.slice(-MAX_HISTORY);
-      console.log(`[storage] 超上限 ${arr.length} → 保留最新 ${toSave.length} 条`);
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-    return toSave.length;
-  } catch(e){
-    console.warn('[storage] 写入失败:', e);
-    return arr.length;
-  }
-}
-
-/** 解析接口条目为标准记录；无法解析返回 null */
-function parseRecord(item){
-  if(!item || typeof item !== 'object') return null;
-  const nbr = String(item.nbr || '').trim();
-  if(!nbr) return null;
-  const num = parseInt(item.num, 10);
-  if(!Number.isFinite(num) || num < 0 || num > 27) return null;
-  let combo = (item.combination || '').trim();
-  if(!NAMES.includes(combo)) combo = valToCombo(num);
-  if(!combo) return null;
-  return {
-    nbr, num, combination: combo,
-    number: item.number || '',
-    date: item.date || '',
-    time: item.time || ''
-  };
-}
-
-/**
- * 【核心修复】合并逻辑：
- *   - 以 state.rawData 为基准（已含 localStorage 全部数据）
- *   - 遍历接口返回的条目，仅当 nbr 不存在时新增
- *   - 已存在时：不覆盖原有记录（保护本地数据完整性）；仅当原有记录字段缺失时才补齐
- *   - 返回 { merged, added }
- *   - 任何情况下都不会丢弃本地已有的期号
- */
-function mergeRecords(baseList, incomingItems){
-  const map = new Map();
-  // 先把基准数据全部装入
-  for(const r of baseList){
-    map.set(r.nbr, r);
-  }
-  let added = 0;
-  let filled = 0;
-  for(const item of incomingItems){
-    const rec = parseRecord(item);
-    if(!rec) continue;
-    if(!map.has(rec.nbr)){
-      // 新增
-      map.set(rec.nbr, rec);
-      added++;
-    } else {
-      // 已存在：保护本地数据，只补空字段
-      const cur = map.get(rec.nbr);
-      let changed = false;
-      if(!cur.number && rec.number){ cur.number = rec.number; changed = true; }
-      if(!cur.date && rec.date){ cur.date = rec.date; changed = true; }
-      if(!cur.time && rec.time){ cur.time = rec.time; changed = true; }
-      if(changed) filled++;
+    // localStorage 兜底：合并写回
+    try{
+      const cur = await getAll();
+      const map = new Map(cur.map(r => [r.nbr, r]));
+      for(const r of records){
+        map.set(r.nbr, r);
+      }
+      let arr = Array.from(map.values()).sort(
+        (a,b) => parseInt(a.nbr) - parseInt(b.nbr)
+      );
+      if(arr.length > LS_MAX){
+        arr = arr.slice(-LS_MAX);
+      }
+      localStorage.setItem(LS_KEY, JSON.stringify(arr));
+      return records.length;
+    } catch(e){
+      console.warn('[Memory] localStorage 写入失败:', e);
+      return 0;
     }
   }
-  // 升序排序
-  const merged = Array.from(map.values()).sort(
-    (a,b) => parseInt(a.nbr) - parseInt(b.nbr)
-  );
-  return { merged, added, filled };
-}
 
-/** 把合并后的数组同步到 state（values / comboSeq），并写回 localStorage */
-function applyMerged(merged){
-  state.rawData = merged;
-  state.values = merged.map(r => r.num);
-  state.comboSeq = merged.map(r => r.combination);
-  const savedCount = writeStorage(merged);
-  console.log(`[state] 应用合并后：${merged.length} 期；已写回 localStorage：${savedCount} 期`);
-}
+  // 裁剪：只保留最新的 max 条（删除最旧）
+  async function trimToMax(max){
+    if(useIDB){
+      return new Promise((resolve) => {
+        try{
+          const tx = idb.transaction(IDB_STORE, 'readwrite');
+          const store = tx.objectStore(IDB_STORE);
+          const countReq = store.count();
+          countReq.onsuccess = () => {
+            const cnt = countReq.result;
+            if(cnt <= max){ resolve(0); return; }
+            const toDelete = cnt - max;
+            // 用 nbr 升序游标，删除最旧的 toDelete 条
+            const curReq = store.openCursor();
+            let deleted = 0;
+            curReq.onsuccess = (e) => {
+              const cur = e.target.result;
+              if(cur && deleted < toDelete){
+                cur.delete();
+                deleted++;
+                cur.continue();
+              } else {
+                resolve(deleted);
+              }
+            };
+            curReq.onerror = () => resolve(0);
+          };
+          countReq.onerror = () => resolve(0);
+        } catch(e){ resolve(0); }
+      });
+    }
+    // localStorage 兜底
+    try{
+      const arr = await getAll();
+      if(arr.length > max){
+        const trimmed = arr.slice(-max);
+        localStorage.setItem(LS_KEY, JSON.stringify(trimmed));
+        return arr.length - trimmed.length;
+      }
+      return 0;
+    } catch(e){ return 0; }
+  }
+
+  // 仅用户手动调用
+  async function clearAll(){
+    if(useIDB){
+      return new Promise((resolve) => {
+        try{
+          const tx = idb.transaction(IDB_STORE, 'readwrite');
+          tx.objectStore(IDB_STORE).clear();
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        } catch(e){ resolve(false); }
+      });
+    }
+    try{
+      localStorage.removeItem(LS_KEY);
+      return true;
+    } catch(e){ return false; }
+  }
+
+  return { init, getAll, putMany, trimToMax, clearAll, isIDB: () => useIDB };
+})();
 
 // ================================================================
 // 状态
@@ -841,12 +788,11 @@ let state = {
   pollTimer: null,
   countdownTimer: null,
   countdown: POLL_INTERVAL,
-  // 记录 bootstrap 来源，便于 UI 提示
   bootSource: 'none'
 };
 
 // ================================================================
-// 数据获取
+// 接口 & 解析
 // ================================================================
 async function fetchDataWithRetry(){
   for(let attempt = 1; attempt <= MAX_RETRY; attempt++){
@@ -865,12 +811,63 @@ async function fetchDataWithRetry(){
     }
   }
 }
+function parseRecord(item){
+  if(!item || typeof item !== 'object') return null;
+  const nbr = String(item.nbr || '').trim();
+  if(!nbr) return null;
+  const num = parseInt(item.num, 10);
+  if(!Number.isFinite(num) || num < 0 || num > 27) return null;
+  let combo = (item.combination || '').trim();
+  if(!NAMES.includes(combo)) combo = valToCombo(num);
+  if(!combo) return null;
+  return {
+    nbr, num, combination: combo,
+    number: item.number || '',
+    date: item.date || '',
+    time: item.time || ''
+  };
+}
+
+// 与内存中的 state.rawData 合并，仅追加不覆盖
+function mergeIntoState(incomingItems){
+  const map = new Map(state.rawData.map(r => [r.nbr, r]));
+  const toPersist = [];
+  let added = 0;
+  for(const item of incomingItems){
+    const rec = parseRecord(item);
+    if(!rec) continue;
+    if(!map.has(rec.nbr)){
+      map.set(rec.nbr, rec);
+      toPersist.push(rec);
+      added++;
+    } else {
+      // 已存在：保护本地，字段缺失时补齐（同时写回）
+      const cur = map.get(rec.nbr);
+      let changed = false;
+      if(!cur.number && rec.number){ cur.number = rec.number; changed = true; }
+      if(!cur.date && rec.date){ cur.date = rec.date; changed = true; }
+      if(!cur.time && rec.time){ cur.time = rec.time; changed = true; }
+      if(changed) toPersist.push(cur);
+    }
+  }
+  const merged = Array.from(map.values()).sort(
+    (a,b) => parseInt(a.nbr) - parseInt(b.nbr)
+  );
+  return { merged, toPersist, added };
+}
+
+// 把合并结果装入 state（不写存储，写存储由调用者负责）
+function applyMerged(merged){
+  state.rawData = merged;
+  state.values = merged.map(r => r.num);
+  state.comboSeq = merged.map(r => r.combination);
+}
 
 // ================================================================
 // 预测引擎
 // ================================================================
 function refitAR(t){
-  const trainStart = Math.max(0, t - 500);
+  const trainStart = Math.max(0, t - 1000);
   const trainEnd = t;
   if(trainEnd - trainStart < 30) return null;
   const residuals = computeResiduals(state.values, trainStart, trainEnd, state.currentW);
@@ -903,7 +900,9 @@ function runBacktestIncremental(){
       state.currentSigma = state.currentAR ? state.currentAR.sigma : 3.0;
     }
     if(state.markovTable === null || (stepsDone > 0 && stepsDone % MARKOV_INTERVAL === 0)){
-      state.markovTable = buildMarkov1(comboSeq, Math.max(0, t - 300), t);
+      // 马尔可夫：全量或最近 1000 期
+      const mStart = Math.max(0, t - 1000);
+      state.markovTable = buildMarkov1(comboSeq, mStart, t);
       state.markovBuiltAt = t;
     }
 
@@ -1117,8 +1116,9 @@ function renderLatest(){
     document.getElementById('predBuy').textContent = '—';
   }
 
-  // 【底部累积期数】
-  document.getElementById('footerInfo').textContent = `已累积 ${state.rawData.length} 期数据`;
+  const n = state.rawData.length;
+  document.getElementById('footerInfo').textContent = `本地记忆 ${n} 期`;
+  document.getElementById('memBadge').textContent = `本地记忆 ${n} 期`;
 }
 
 function renderKPIs(){
@@ -1284,7 +1284,7 @@ function renderAll(){
 }
 
 // ================================================================
-// 【初始化流程】读取本地 → 首次接口合并 → 启动轮询
+// 主流程
 // ================================================================
 function setAlert(msg, cls){
   const box = document.getElementById('alertBox');
@@ -1292,168 +1292,56 @@ function setAlert(msg, cls){
   document.getElementById('alertMsg').textContent = msg;
 }
 
-/**
- * 从 localStorage 读取并装载到 state（不清空存储）
- * 返回读取到的期数
- */
-function bootstrapFromStorage(){
-  const stored = readStorage();
+// 从记忆库装载到 state
+async function bootstrapFromMemory(){
+  const stored = await Memory.getAll();
   if(stored.length > 0){
-    // 升序（readStorage 保留原始，可能已经是升序）
-    stored.sort((a, b) => parseInt(a.nbr) - parseInt(b.nbr));
-    state.rawData = stored;
-    state.values = stored.map(r => r.num);
-    state.comboSeq = stored.map(r => r.combination);
-    state.bootSource = 'storage';
-    console.log(`[bootstrap] 从 localStorage 装载 ${stored.length} 期`);
-    document.getElementById('footerInfo').textContent = `已累积 ${stored.length} 期数据`;
+    applyMerged(stored);
+    state.bootSource = 'memory';
+    console.log(`[bootstrap] 记忆库装载 ${stored.length} 期`);
+    document.getElementById('footerInfo').textContent = `本地记忆 ${stored.length} 期`;
+    document.getElementById('memBadge').textContent = `本地记忆 ${stored.length} 期`;
     return stored.length;
   }
   state.bootSource = 'api';
-  console.log('[bootstrap] 本地无数据，等待 API 首次加载');
   return 0;
 }
 
-/**
- * 拉取接口并与本地合并
- * @param {boolean} silent 静默模式（成功时不弹提示）
- */
 async function fetchAndUpdate(silent){
   try{
     const items = await fetchDataWithRetry();
-    // 【核心】合并逻辑：以 state.rawData（含本地数据）为基准
-    const baseList = state.rawData.slice();
-    const { merged, added, filled } = mergeRecords(baseList, items);
+
+    // 以 state.rawData（含记忆库全量）为基准合并
+    const { merged, toPersist, added } = mergeIntoState(items);
+
+    // 先写入记忆库（只 put 追加，不 clear）
+    if(toPersist.length){
+      await Memory.putMany(toPersist);
+    }
+
+    // 数据量超限裁剪最旧
+    const trimmed = await Memory.trimToMax(IDB_MAX);
+
+    // 应用到内存
     applyMerged(merged);
 
     document.getElementById('dataCount').textContent = state.rawData.length + ' 期';
     document.getElementById('lastUpdate').textContent = '更新于 ' + new Date().toLocaleTimeString();
-    document.getElementById('footerInfo').textContent = `已累积 ${state.rawData.length} 期数据`;
+    document.getElementById('footerInfo').textContent = `本地记忆 ${state.rawData.length} 期`;
+    document.getElementById('memBadge').textContent = `本地记忆 ${state.rawData.length} 期`;
 
     if(state.rawData.length < MIN_DATA){
       setAlert(`数据不足（当前 ${state.rawData.length} 期，需要至少 ${MIN_DATA} 期），请等待积累。`, 'warn');
       return;
     }
 
-    // 增量回测 + 下一期预测
+    // 增量回测 + 预测
     runBacktestIncremental();
     state.nextPrediction = predictNext();
     renderAll();
 
+    const engineLabel = Memory.isIDB() ? 'IndexedDB' : 'localStorage';
     if(added > 0 || !silent){
-      const fillMsg = filled > 0 ? ` · 补全 ${filled} 期字段` : '';
-      setAlert(`已加载 ${state.rawData.length} 期数据 · 新增 ${added} 期${fillMsg} · 预测已更新`, 'ok');
+      const trimMsg = trimmed > 0 ? ` · 裁剪 ${trimmed} 期` : '';
+      setAlert(`本地记忆 ${state.rawData.length} 期 · 新增 ${added} 期${trimMsg} · 引擎 ${engineLabel} · 预测已更新`, 'ok');
     } else {
-      setAlert(`数据已是最新 · 共 ${state.rawData.length} 期`, 'ok');
-    }
-  } catch(err){
-    console.error(err);
-    setAlert('数据获取异常：' + err.message, 'err');
-  }
-}
-
-function startCountdown(){
-  if(state.countdownTimer) clearInterval(state.countdownTimer);
-  state.countdown = POLL_INTERVAL;
-  document.getElementById('countdown').textContent = state.countdown;
-  state.countdownTimer = setInterval(() => {
-    state.countdown--;
-    document.getElementById('countdown').textContent = Math.max(0, state.countdown);
-    if(state.countdown <= 0) state.countdown = POLL_INTERVAL;
-  }, 1000);
-}
-
-function startPolling(){
-  if(state.pollTimer) clearInterval(state.pollTimer);
-  state.pollTimer = setInterval(() => {
-    fetchAndUpdate(true);
-    state.countdown = POLL_INTERVAL;
-  }, POLL_INTERVAL * 1000);
-}
-
-function resetRuntimeState(){
-  state.values = [];
-  state.comboSeq = [];
-  state.records = [];
-  state.hitsByStrategy = [];
-  state.currentAR = null;
-  state.currentW = 20;
-  state.currentSigma = 3.0;
-  state.markovTable = null;
-  state.markovBuiltAt = -1;
-  state.nextPrediction = null;
-}
-
-// ================================================================
-// 事件绑定
-// ================================================================
-document.getElementById('btnRefresh').onclick = () => {
-  fetchAndUpdate(false);
-  state.countdown = POLL_INTERVAL;
-};
-document.getElementById('btnStartRefresh').onclick = () => {
-  fetchAndUpdate(false);
-};
-
-// 【清除数据】唯一允许清空 localStorage 的入口
-document.getElementById('btnClear').onclick = () => {
-  if(!confirm('确定清除本地数据并重新开始？此操作不可恢复。')) return;
-  clearLocalData();
-  // 重新走一遍初始化
-  state.rawData = [];
-  resetRuntimeState();
-  document.getElementById('dataCount').textContent = '0 期';
-  document.getElementById('lastUpdate').textContent = '—';
-  document.getElementById('footerInfo').textContent = '已累积 0 期数据';
-  document.getElementById('statusCard').style.display = 'none';
-  document.getElementById('chartsArea').style.display = 'none';
-  document.getElementById('statsCard').style.display = 'none';
-  document.getElementById('weightsCard').style.display = 'none';
-  document.getElementById('detailCard').style.display = 'none';
-  document.getElementById('startHero').style.display = 'block';
-  setAlert('本地数据已清除，正在重新初始化…', 'warn');
-  fetchAndUpdate(false);
-};
-
-function clearLocalData(){
-  try{
-    localStorage.removeItem(STORAGE_KEY);
-    console.log('[storage] 已清除本地数据');
-  } catch(e){
-    console.warn('[storage] 清除失败:', e);
-  }
-}
-
-// ================================================================
-// 【入口】初始化
-// ================================================================
-(async function init(){
-  setAlert('正在初始化…', 'warn');
-
-  // 1) 优先从 localStorage 读取（绝不清空）
-  const localCount = bootstrapFromStorage();
-
-  // 2) 接口首次拉取（合并到本地）
-  await fetchAndUpdate(localCount > 0);
-
-  // 3) 启动倒计时和轮询
-  startCountdown();
-  startPolling();
-
-  // 4) 页面即将卸载时，把内存中的最新数据写回（双保险）
-  window.addEventListener('beforeunload', () => {
-    if(state.rawData.length) writeStorage(state.rawData);
-  });
-
-  // 5) 从后台切回前台时，立即拉一次
-  document.addEventListener('visibilitychange', () => {
-    if(document.visibilityState === 'visible'){
-      fetchAndUpdate(true);
-      state.countdown = POLL_INTERVAL;
-    }
-  });
-})();
-
-</script>
-</body>
-</html>
