@@ -73,7 +73,6 @@
     max-width:1440px; margin:0 auto; padding:22px 16px 80px;
   }
 
-  /* 标题 */
   .hero{
     display:flex; align-items:flex-end; justify-content:space-between;
     gap:16px; flex-wrap:wrap; margin-bottom:18px;
@@ -101,7 +100,6 @@
     50%{opacity:.45; transform:scale(.85)}
   }
 
-  /* 卡片 */
   .card{
     position:relative;
     background:var(--glass);
@@ -138,7 +136,6 @@
   @media(max-width:960px){ .g2,.g4{grid-template-columns:1fr 1fr} }
   @media(max-width:620px){ .g2,.g4{grid-template-columns:1fr} }
 
-  /* 按钮 */
   button{
     position:relative; z-index:2;
     background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
@@ -160,7 +157,6 @@
   }
   .btn-clear:hover{color:var(--bad); border-color:rgba(255,84,112,.4); filter:none}
 
-  /* 状态区 */
   .status-grid{
     display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
     gap:12px; margin-bottom:14px;
@@ -186,7 +182,6 @@
   .status-item .val.purple{color:var(--purple)}
   .status-item .val.good{color:var(--good)}
 
-  /* 预测结果 */
   .result-panel{
     position:relative;
     background:
@@ -225,7 +220,6 @@
     min-width:52px; display:inline-block; text-align:center;
   }
 
-  /* KPI */
   .kpi{
     position:relative;
     background:linear-gradient(160deg, rgba(30,45,70,.65), rgba(15,22,36,.75));
@@ -252,7 +246,6 @@
   .kpi .v.purple{color:var(--purple)}
   .kpi .v.accent{color:var(--accent)}
 
-  /* 权重条 */
   .strategy-bars{display:grid; gap:10px; margin-top:4px}
   .sbar-row{display:grid; grid-template-columns:120px 1fr 64px; gap:12px; align-items:center}
   @media(max-width:520px){ .sbar-row{grid-template-columns:96px 1fr 56px} }
@@ -277,7 +270,6 @@
     text-align:right; font-weight:700;
   }
 
-  /* 提示 */
   .alert{
     display:flex; align-items:center; gap:10px;
     padding:11px 16px; border-radius:12px; font-size:12.5px;
@@ -293,7 +285,6 @@
   .alert-warn .dot{background:var(--warn); box-shadow:0 0 10px var(--warn)}
   .alert-err .dot{background:var(--bad); box-shadow:0 0 10px var(--bad)}
 
-  /* 图表 */
   canvas{width:100%; display:block}
   .chart-box{position:relative; height:290px}
   @media(max-width:620px){ .chart-box{height:230px} }
@@ -303,7 +294,6 @@
   }
   .note .legend-dot{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px}
 
-  /* 表格 */
   table{width:100%; border-collapse:collapse; font-size:12px}
   th,td{
     padding:8px 10px; text-align:right;
@@ -339,7 +329,6 @@
     color:var(--sub);
   }
 
-  /* 初始 hero */
   .start-hero{text-align:center; padding:48px 20px}
   .start-hero .icon{
     font-size:56px; margin-bottom:10px;
@@ -352,7 +341,6 @@
   .start-hero h2::before{display:none}
   .start-hero p{color:var(--sub); margin:0 0 24px; font-size:13px}
 
-  /* 底部 */
   .bottom-bar{
     display:flex; align-items:center; justify-content:space-between;
     gap:12px; flex-wrap:wrap;
@@ -368,7 +356,6 @@
 
 <div class="wrap">
 
-  <!-- Hero -->
   <div class="hero">
     <div>
       <h1>PC28 · 四组合排除法实时预测</h1>
@@ -377,13 +364,11 @@
     <div class="live-badge"><span class="live-dot"></span>LIVE</div>
   </div>
 
-  <!-- 提示 -->
   <div id="alertBox" class="alert alert-warn">
     <span class="dot"></span>
     <span id="alertMsg">正在初始化…</span>
   </div>
 
-  <!-- 初始态 -->
   <div class="card start-hero" id="startHero">
     <div class="icon">📡</div>
     <h2>正在连接数据源</h2>
@@ -393,7 +378,6 @@
     </div>
   </div>
 
-  <!-- 状态 -->
   <div class="card" id="statusCard" style="display:none">
     <h2>实时状态</h2>
     <div class="status-grid" id="latestGrid"></div>
@@ -419,7 +403,6 @@
     </div>
   </div>
 
-  <!-- 图表 -->
   <div id="chartsArea" style="display:none">
     <div class="grid g2">
       <div class="card">
@@ -442,13 +425,11 @@
     </div>
   </div>
 
-  <!-- KPI -->
   <div class="card" id="statsCard" style="display:none">
     <h2>统计面板</h2>
     <div class="grid g4" id="kpis"></div>
   </div>
 
-  <!-- 权重 -->
   <div class="card" id="weightsCard" style="display:none">
     <h2>策略权重 · softmax(T=1.0)</h2>
     <div class="strategy-bars" id="strategyBars"></div>
@@ -460,7 +441,6 @@
     </div>
   </div>
 
-  <!-- 明细 -->
   <div class="card" id="detailCard" style="display:none">
     <h2>预测明细 · 最近 40 期</h2>
     <div class="scroll">
@@ -476,7 +456,6 @@
     </div>
   </div>
 
-  <!-- 底部 -->
   <div class="bottom-bar">
     <div id="footerInfo">已累积 0 期数据</div>
     <button id="btnClear" class="btn-clear">清除本地数据并重新开始</button>
@@ -730,34 +709,118 @@ function softmax(scores, T){
 }
 
 // ================================================================
-// 本地存储
+// 【修复重点】本地存储 & 数据合并
 // ================================================================
-function loadFromStorage(){
+
+/** 从 localStorage 读取完整数据；任何异常返回空数组，不修改存储 */
+function readStorage(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return [];
+    if(!raw){
+      console.log('[storage] 无本地数据');
+      return [];
+    }
     const arr = JSON.parse(raw);
-    if(!Array.isArray(arr)) return [];
-    return arr.filter(r => r && r.nbr && Number.isFinite(r.num) && NAMES.includes(r.combination));
+    if(!Array.isArray(arr)){
+      console.warn('[storage] 存储内容不是数组，忽略');
+      return [];
+    }
+    const valid = arr.filter(r =>
+      r && typeof r.nbr === 'string' && r.nbr.length > 0 &&
+      Number.isFinite(r.num) && r.num >= 0 && r.num <= 27 &&
+      NAMES.includes(r.combination)
+    );
+    console.log(`[storage] 读取 ${arr.length} 条，有效 ${valid.length} 条`);
+    return valid;
   } catch(e){
-    console.warn('[storage] 读取失败', e);
+    console.warn('[storage] 读取失败:', e);
     return [];
   }
 }
-function saveToStorage(arr){
+
+/** 写入 localStorage；仅在这里执行“超上限裁剪”，不影响内存数据 */
+function writeStorage(arr){
   try{
-    // 上限：删除最旧期号
-    if(arr.length > MAX_HISTORY){
-      arr.sort((a,b) => parseInt(a.nbr) - parseInt(b.nbr));
-      arr = arr.slice(-MAX_HISTORY);
+    let toSave = arr;
+    if(toSave.length > MAX_HISTORY){
+      // 升序排序后取最新 MAX_HISTORY 条
+      const sorted = toSave.slice().sort((a,b) => parseInt(a.nbr) - parseInt(b.nbr));
+      toSave = sorted.slice(-MAX_HISTORY);
+      console.log(`[storage] 超上限 ${arr.length} → 保留最新 ${toSave.length} 条`);
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    return toSave.length;
   } catch(e){
-    console.warn('[storage] 保存失败', e);
+    console.warn('[storage] 写入失败:', e);
+    return arr.length;
   }
 }
-function clearStorage(){
-  try{ localStorage.removeItem(STORAGE_KEY); } catch(e){}
+
+/** 解析接口条目为标准记录；无法解析返回 null */
+function parseRecord(item){
+  if(!item || typeof item !== 'object') return null;
+  const nbr = String(item.nbr || '').trim();
+  if(!nbr) return null;
+  const num = parseInt(item.num, 10);
+  if(!Number.isFinite(num) || num < 0 || num > 27) return null;
+  let combo = (item.combination || '').trim();
+  if(!NAMES.includes(combo)) combo = valToCombo(num);
+  if(!combo) return null;
+  return {
+    nbr, num, combination: combo,
+    number: item.number || '',
+    date: item.date || '',
+    time: item.time || ''
+  };
+}
+
+/**
+ * 【核心修复】合并逻辑：
+ *   - 以 state.rawData 为基准（已含 localStorage 全部数据）
+ *   - 遍历接口返回的条目，仅当 nbr 不存在时新增
+ *   - 已存在时：不覆盖原有记录（保护本地数据完整性）；仅当原有记录字段缺失时才补齐
+ *   - 返回 { merged, added }
+ *   - 任何情况下都不会丢弃本地已有的期号
+ */
+function mergeRecords(baseList, incomingItems){
+  const map = new Map();
+  // 先把基准数据全部装入
+  for(const r of baseList){
+    map.set(r.nbr, r);
+  }
+  let added = 0;
+  let filled = 0;
+  for(const item of incomingItems){
+    const rec = parseRecord(item);
+    if(!rec) continue;
+    if(!map.has(rec.nbr)){
+      // 新增
+      map.set(rec.nbr, rec);
+      added++;
+    } else {
+      // 已存在：保护本地数据，只补空字段
+      const cur = map.get(rec.nbr);
+      let changed = false;
+      if(!cur.number && rec.number){ cur.number = rec.number; changed = true; }
+      if(!cur.date && rec.date){ cur.date = rec.date; changed = true; }
+      if(!cur.time && rec.time){ cur.time = rec.time; changed = true; }
+      if(changed) filled++;
+    }
+  }
+  // 升序排序
+  const merged = Array.from(map.values()).sort(
+    (a,b) => parseInt(a.nbr) - parseInt(b.nbr)
+  );
+  return { merged, added, filled };
+}
+
+/** 把合并后的数组同步到 state（values / comboSeq），并写回 localStorage */
+function applyMerged(merged){
+  state.rawData = merged;
+  state.values = merged.map(r => r.num);
+  state.comboSeq = merged.map(r => r.combination);
+  const savedCount = writeStorage(merged);
+  console.log(`[state] 应用合并后：${merged.length} 期；已写回 localStorage：${savedCount} 期`);
 }
 
 // ================================================================
@@ -777,7 +840,9 @@ let state = {
   nextPrediction: null,
   pollTimer: null,
   countdownTimer: null,
-  countdown: POLL_INTERVAL
+  countdown: POLL_INTERVAL,
+  // 记录 bootstrap 来源，便于 UI 提示
+  bootSource: 'none'
 };
 
 // ================================================================
@@ -798,53 +863,6 @@ async function fetchDataWithRetry(){
       if(attempt < MAX_RETRY) await new Promise(r => setTimeout(r, RETRY_DELAY));
       else throw err;
     }
-  }
-}
-function parseRecord(item){
-  if(!item || typeof item !== 'object') return null;
-  const nbr = String(item.nbr || '').trim();
-  if(!nbr) return null;
-  const num = parseInt(item.num, 10);
-  if(!Number.isFinite(num) || num < 0 || num > 27) return null;
-  let combo = (item.combination || '').trim();
-  if(!NAMES.includes(combo)) combo = valToCombo(num);
-  if(!combo) return null;
-  return {
-    nbr, num, combination: combo,
-    number: item.number || '',
-    date: item.date || '',
-    time: item.time || ''
-  };
-}
-
-// 从接口数据合并到 state 并写回 localStorage
-function mergeAndPersist(newItems){
-  const existing = new Map(state.rawData.map(r => [r.nbr, r]));
-  let added = 0;
-  for(const item of newItems){
-    const rec = parseRecord(item);
-    if(!rec) continue;
-    if(!existing.has(rec.nbr)){ existing.set(rec.nbr, rec); added++; }
-    else existing.set(rec.nbr, rec);
-  }
-  const arr = Array.from(existing.values());
-  arr.sort((a, b) => parseInt(a.nbr) - parseInt(b.nbr));
-  state.rawData = arr;
-  state.values = arr.map(r => r.num);
-  state.comboSeq = arr.map(r => r.combination);
-  saveToStorage(arr);
-  return added;
-}
-
-// 从本地初始化（首次加载或手动刷新用）
-function bootstrapFromStorage(){
-  const stored = loadFromStorage();
-  if(stored.length){
-    stored.sort((a, b) => parseInt(a.nbr) - parseInt(b.nbr));
-    state.rawData = stored;
-    state.values = stored.map(r => r.num);
-    state.comboSeq = stored.map(r => r.combination);
-    console.log('[init] 从 localStorage 加载', stored.length, '期');
   }
 }
 
@@ -1099,6 +1117,7 @@ function renderLatest(){
     document.getElementById('predBuy').textContent = '—';
   }
 
+  // 【底部累积期数】
   document.getElementById('footerInfo').textContent = `已累积 ${state.rawData.length} 期数据`;
 }
 
@@ -1265,7 +1284,7 @@ function renderAll(){
 }
 
 // ================================================================
-// 主流程
+// 【初始化流程】读取本地 → 首次接口合并 → 启动轮询
 // ================================================================
 function setAlert(msg, cls){
   const box = document.getElementById('alertBox');
@@ -1273,24 +1292,57 @@ function setAlert(msg, cls){
   document.getElementById('alertMsg').textContent = msg;
 }
 
+/**
+ * 从 localStorage 读取并装载到 state（不清空存储）
+ * 返回读取到的期数
+ */
+function bootstrapFromStorage(){
+  const stored = readStorage();
+  if(stored.length > 0){
+    // 升序（readStorage 保留原始，可能已经是升序）
+    stored.sort((a, b) => parseInt(a.nbr) - parseInt(b.nbr));
+    state.rawData = stored;
+    state.values = stored.map(r => r.num);
+    state.comboSeq = stored.map(r => r.combination);
+    state.bootSource = 'storage';
+    console.log(`[bootstrap] 从 localStorage 装载 ${stored.length} 期`);
+    document.getElementById('footerInfo').textContent = `已累积 ${stored.length} 期数据`;
+    return stored.length;
+  }
+  state.bootSource = 'api';
+  console.log('[bootstrap] 本地无数据，等待 API 首次加载');
+  return 0;
+}
+
+/**
+ * 拉取接口并与本地合并
+ * @param {boolean} silent 静默模式（成功时不弹提示）
+ */
 async function fetchAndUpdate(silent){
   try{
     const items = await fetchDataWithRetry();
-    const added = mergeAndPersist(items);
+    // 【核心】合并逻辑：以 state.rawData（含本地数据）为基准
+    const baseList = state.rawData.slice();
+    const { merged, added, filled } = mergeRecords(baseList, items);
+    applyMerged(merged);
 
     document.getElementById('dataCount').textContent = state.rawData.length + ' 期';
     document.getElementById('lastUpdate').textContent = '更新于 ' + new Date().toLocaleTimeString();
+    document.getElementById('footerInfo').textContent = `已累积 ${state.rawData.length} 期数据`;
 
     if(state.rawData.length < MIN_DATA){
       setAlert(`数据不足（当前 ${state.rawData.length} 期，需要至少 ${MIN_DATA} 期），请等待积累。`, 'warn');
       return;
     }
+
+    // 增量回测 + 下一期预测
     runBacktestIncremental();
     state.nextPrediction = predictNext();
     renderAll();
 
     if(added > 0 || !silent){
-      setAlert(`已加载 ${state.rawData.length} 期数据 · 新增 ${added} 期 · 预测已更新`, 'ok');
+      const fillMsg = filled > 0 ? ` · 补全 ${filled} 期字段` : '';
+      setAlert(`已加载 ${state.rawData.length} 期数据 · 新增 ${added} 期${fillMsg} · 预测已更新`, 'ok');
     } else {
       setAlert(`数据已是最新 · 共 ${state.rawData.length} 期`, 'ok');
     }
@@ -1319,8 +1371,7 @@ function startPolling(){
   }, POLL_INTERVAL * 1000);
 }
 
-function resetState(){
-  state.rawData = [];
+function resetRuntimeState(){
   state.values = [];
   state.comboSeq = [];
   state.records = [];
@@ -1334,7 +1385,7 @@ function resetState(){
 }
 
 // ================================================================
-// 初始化
+// 事件绑定
 // ================================================================
 document.getElementById('btnRefresh').onclick = () => {
   fetchAndUpdate(false);
@@ -1343,10 +1394,14 @@ document.getElementById('btnRefresh').onclick = () => {
 document.getElementById('btnStartRefresh').onclick = () => {
   fetchAndUpdate(false);
 };
+
+// 【清除数据】唯一允许清空 localStorage 的入口
 document.getElementById('btnClear').onclick = () => {
-  if(!confirm('确定清除本地数据并重新开始？')) return;
-  clearStorage();
-  resetState();
+  if(!confirm('确定清除本地数据并重新开始？此操作不可恢复。')) return;
+  clearLocalData();
+  // 重新走一遍初始化
+  state.rawData = [];
+  resetRuntimeState();
   document.getElementById('dataCount').textContent = '0 期';
   document.getElementById('lastUpdate').textContent = '—';
   document.getElementById('footerInfo').textContent = '已累积 0 期数据';
@@ -1360,26 +1415,42 @@ document.getElementById('btnClear').onclick = () => {
   fetchAndUpdate(false);
 };
 
+function clearLocalData(){
+  try{
+    localStorage.removeItem(STORAGE_KEY);
+    console.log('[storage] 已清除本地数据');
+  } catch(e){
+    console.warn('[storage] 清除失败:', e);
+  }
+}
+
+// ================================================================
+// 【入口】初始化
+// ================================================================
 (async function init(){
   setAlert('正在初始化…', 'warn');
 
-  // 1) 从 localStorage 加载
-  bootstrapFromStorage();
-  if(state.rawData.length > 0){
-    console.log('[init] 本地已有', state.rawData.length, '期数据');
-    document.getElementById('footerInfo').textContent = `已累积 ${state.rawData.length} 期数据`;
-  }
+  // 1) 优先从 localStorage 读取（绝不清空）
+  const localCount = bootstrapFromStorage();
 
-  // 2) 首次拉取接口
-  await fetchAndUpdate(state.rawData.length > 0);
+  // 2) 接口首次拉取（合并到本地）
+  await fetchAndUpdate(localCount > 0);
 
-  // 3) 启动倒计时与轮询
+  // 3) 启动倒计时和轮询
   startCountdown();
   startPolling();
 
-  // 4) 页面卸载前保存（双保险）
+  // 4) 页面即将卸载时，把内存中的最新数据写回（双保险）
   window.addEventListener('beforeunload', () => {
-    if(state.rawData.length) saveToStorage(state.rawData);
+    if(state.rawData.length) writeStorage(state.rawData);
+  });
+
+  // 5) 从后台切回前台时，立即拉一次
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible'){
+      fetchAndUpdate(true);
+      state.countdown = POLL_INTERVAL;
+    }
   });
 })();
 
