@@ -3,229 +3,366 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PC28 · 四组合排除法实时预测（记忆库版）</title>
+<title>PC28 · 四组合排除法实时预测</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
+  /* ============================================================
+     明亮主题
+     ============================================================ */
   :root{
-    --bg-0:#05070d; --bg-1:#0a0f1a; --bg-2:#0f1524;
-    --glass:rgba(22,32,50,0.55);
-    --glass-line:rgba(80,120,180,0.18);
-    --glass-line-2:rgba(120,160,220,0.30);
-    --txt:#eaf1fb; --txt-2:#c2cfe0; --sub:#7f93ab;
-    --accent:#4ea1ff; --accent-2:#7c5cff; --accent-3:#22d3ee;
-    --good:#31e0a0; --bad:#ff5470; --warn:#ffbc42; --purple:#b18cff;
+    --bg-0:#f8fafc;
+    --bg-1:#eef2f9;
+    --bg-2:#e6edf7;
+    --glass:rgba(255,255,255,0.82);
+    --glass-strong:rgba(255,255,255,0.94);
+    --glass-line:rgba(150,170,200,0.28);
+    --glass-line-2:rgba(100,130,180,0.42);
+    --txt:#1a202c;
+    --txt-2:#2d3748;
+    --sub:#5f7291;
+    --accent:#2b7cf5;
+    --accent-2:#6366f1;
+    --accent-3:#0891b2;
+    --good:#10a37f;
+    --bad:#e11d48;
+    --warn:#d97706;
+    --purple:#7c3aed;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
     margin:0; color:var(--txt);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-    font-size:14px; line-height:1.55;
+    font-size:13.5px; line-height:1.5;
     background:
-      radial-gradient(1200px 800px at 10% -10%, rgba(78,161,255,0.18), transparent 60%),
-      radial-gradient(1000px 700px at 110% 10%, rgba(124,92,255,0.16), transparent 60%),
-      radial-gradient(900px 600px at 50% 120%, rgba(34,211,238,0.10), transparent 60%),
-      linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 45%, var(--bg-2) 100%);
-    background-attachment:fixed; overflow-x:hidden;
+      radial-gradient(1200px 800px at 10% -10%, rgba(43,124,245,0.10), transparent 60%),
+      radial-gradient(1000px 700px at 110% 10%, rgba(99,102,241,0.09), transparent 60%),
+      radial-gradient(900px 600px at 50% 120%, rgba(8,145,178,0.07), transparent 60%),
+      linear-gradient(180deg, #fbfcfe 0%, var(--bg-1) 45%, var(--bg-2) 100%);
+    background-attachment:fixed;
+    overflow-x:hidden;
   }
   body::before, body::after{
     content:""; position:fixed; pointer-events:none; z-index:0;
-    width:60vmax; height:60vmax; border-radius:50%;
-    filter:blur(90px); opacity:.28;
+    width:55vmax; height:55vmax; border-radius:50%;
+    filter:blur(100px); opacity:.22;
     animation:float 22s ease-in-out infinite;
   }
-  body::before{background:radial-gradient(circle, #4ea1ff 0%, transparent 65%); top:-20vmax; left:-15vmax;}
-  body::after{background:radial-gradient(circle, #7c5cff 0%, transparent 65%); bottom:-25vmax; right:-15vmax; animation-delay:-11s;}
-  @keyframes float{0%,100%{transform:translate3d(0,0,0) scale(1)} 50%{transform:translate3d(4vmax,3vmax,0) scale(1.08)}}
+  body::before{
+    background:radial-gradient(circle, #a7c8ff 0%, transparent 65%);
+    top:-22vmax; left:-15vmax;
+  }
+  body::after{
+    background:radial-gradient(circle, #c5c8ff 0%, transparent 65%);
+    bottom:-25vmax; right:-15vmax; animation-delay:-11s;
+  }
+  @keyframes float{
+    0%,100%{transform:translate3d(0,0,0) scale(1)}
+    50%{transform:translate3d(4vmax,3vmax,0) scale(1.08)}
+  }
   .grid-overlay{
     position:fixed; inset:0; z-index:0; pointer-events:none;
     background-image:
-      linear-gradient(rgba(120,160,220,0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(120,160,220,0.045) 1px, transparent 1px);
-    background-size:48px 48px;
-    mask-image:radial-gradient(circle at 50% 30%, #000 30%, transparent 85%);
-    -webkit-mask-image:radial-gradient(circle at 50% 30%, #000 30%, transparent 85%);
+      linear-gradient(rgba(100,140,200,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(100,140,200,0.06) 1px, transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(circle at 50% 30%, #000 30%, transparent 88%);
+    -webkit-mask-image:radial-gradient(circle at 50% 30%, #000 30%, transparent 88%);
   }
-  .wrap{position:relative; z-index:1; max-width:1440px; margin:0 auto; padding:22px 16px 80px;}
+  .wrap{
+    position:relative; z-index:1;
+    max-width:1200px; margin:0 auto; padding:14px 12px 40px;
+  }
 
-  .hero{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px;}
-  .hero h1{
-    font-size:24px; margin:0 0 6px; letter-spacing:.3px;
-    background:linear-gradient(90deg, #eaf1fb 0%, #7cc4ff 45%, #b18cff 100%);
-    -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:800;
+  /* 标题 */
+  .hero{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; flex-wrap:wrap; margin-bottom:12px;
   }
-  .hero .sub{color:var(--sub); font-size:12.5px}
+  .hero h1{
+    font-size:clamp(16px, 2.2vw, 20px);
+    margin:0 0 2px; letter-spacing:.2px;
+    background:linear-gradient(90deg, #1a202c 0%, #2b7cf5 50%, #6366f1 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    font-weight:800;
+  }
+  .hero .sub{color:var(--sub); font-size:11.5px}
   .live-badge{
-    display:inline-flex; align-items:center; gap:7px;
-    padding:6px 12px; border-radius:20px; font-size:12px;
-    background:rgba(49,224,160,.10); border:1px solid rgba(49,224,160,.35);
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px; border-radius:16px; font-size:11.5px;
+    background:rgba(16,163,127,.12); border:1px solid rgba(16,163,127,.35);
     color:var(--good); font-weight:600;
   }
-  .live-dot{width:8px; height:8px; border-radius:50%; background:var(--good); box-shadow:0 0 10px var(--good); animation:pulse 1.6s infinite;}
-  @keyframes pulse{0%,100%{opacity:1; transform:scale(1)} 50%{opacity:.45; transform:scale(.85)}}
+  .live-dot{
+    width:7px; height:7px; border-radius:50%;
+    background:var(--good); box-shadow:0 0 8px var(--good);
+    animation:pulse 1.6s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1; transform:scale(1)}
+    50%{opacity:.5; transform:scale(.85)}
+  }
+  .mem-badge{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:4px 10px; border-radius:16px; font-size:11.5px;
+    background:rgba(43,124,245,.10); border:1px solid rgba(43,124,245,.32);
+    color:var(--accent); font-weight:600;
+  }
+  .mem-dot{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--accent); box-shadow:0 0 7px var(--accent);
+  }
 
+  /* 卡片 */
   .card{
-    position:relative; background:var(--glass);
-    backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%);
-    border:1px solid var(--glass-line); border-radius:18px;
-    padding:18px 20px; margin-bottom:16px;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 20px 40px -24px rgba(0,0,0,0.7);
-    overflow:hidden;
+    position:relative;
+    background:var(--glass);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border:1px solid var(--glass-line);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:10px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.7) inset,
+      0 8px 24px -16px rgba(20,40,80,0.25);
   }
-  .card::after{content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
-    background:linear-gradient(140deg, rgba(255,255,255,0.06), transparent 40%); opacity:.7;}
   .card h2{
-    font-size:13px; margin:0 0 14px; color:var(--accent);
-    font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
-    display:flex; align-items:center; gap:8px;
+    font-size:11.5px; margin:0 0 10px; color:var(--accent);
+    font-weight:700; letter-spacing:1px; text-transform:uppercase;
+    display:flex; align-items:center; gap:6px;
   }
-  .card h2::before{content:""; width:3px; height:14px; border-radius:2px;
-    background:linear-gradient(180deg, var(--accent), var(--accent-2));}
-  .grid{display:grid; gap:14px}
-  .g2{grid-template-columns:1fr 1fr}
+  .card h2::before{
+    content:""; width:3px; height:11px; border-radius:2px;
+    background:linear-gradient(180deg, var(--accent), var(--accent-2));
+  }
+
+  .grid{display:grid; gap:8px}
   .g4{grid-template-columns:repeat(4,1fr)}
-  @media(max-width:960px){ .g2,.g4{grid-template-columns:1fr 1fr} }
-  @media(max-width:620px){ .g2,.g4{grid-template-columns:1fr} }
+  @media(max-width:900px){ .g4{grid-template-columns:1fr 1fr} }
+  @media(max-width:560px){ .g4{grid-template-columns:1fr 1fr} }
 
   button{
     position:relative; z-index:2;
     background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
-    color:#04121f; border:none; padding:11px 22px; border-radius:12px; font-size:13.5px;
-    font-weight:700; cursor:pointer; letter-spacing:.4px;
-    box-shadow:0 10px 24px -12px var(--accent), 0 0 0 1px rgba(255,255,255,.08) inset;
-    transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
+    color:#fff; border:none;
+    padding:8px 16px; border-radius:8px; font-size:12.5px;
+    font-weight:600; cursor:pointer; letter-spacing:.3px;
+    box-shadow:0 6px 16px -8px var(--accent);
+    transition: filter .15s ease, transform .15s ease;
   }
-  button:hover{filter:brightness(1.08); transform:translateY(-1px)}
-  button:active{transform:translateY(0)}
-  button:disabled{opacity:.5; cursor:not-allowed; transform:none}
-  .btn-clear{
-    background:transparent; color:var(--sub); padding:6px 12px; font-size:11.5px;
-    border:1px solid var(--glass-line); box-shadow:none; font-weight:500;
-  }
-  .btn-clear:hover{color:var(--bad); border-color:rgba(255,84,112,.4); filter:none}
+  button:hover{filter:brightness(1.06); transform:translateY(-1px)}
 
-  .status-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:14px;}
-  .status-item{
-    position:relative;
-    background:linear-gradient(160deg, rgba(30,45,70,.7), rgba(15,22,36,.7));
-    border:1px solid var(--glass-line); border-radius:14px; padding:12px 14px; overflow:hidden;
+  /* 提示 */
+  .alert{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 12px; border-radius:9px; font-size:12px;
+    margin-bottom:10px;
   }
-  .status-item::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
-    background:linear-gradient(180deg, var(--accent), var(--accent-2)); opacity:.85;}
-  .status-item .lbl{font-size:11px; color:var(--sub); margin-bottom:4px; letter-spacing:.4px}
-  .status-item .val{font-size:18px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:.3px;}
-  .status-item .val.accent{color:var(--accent)}
-  .status-item .val.purple{color:var(--purple)}
-  .status-item .val.good{color:var(--good)}
+  .alert-ok{background:rgba(16,163,127,.10); border:1px solid rgba(16,163,127,.32); color:#0b7f63}
+  .alert-warn{background:rgba(217,119,6,.10); border:1px solid rgba(217,119,6,.32); color:#a35a03}
+  .alert-err{background:rgba(225,29,72,.10); border:1px solid rgba(225,29,72,.35); color:#b0193c}
+  .alert .dot{width:7px; height:7px; border-radius:50%; flex-shrink:0}
+  .alert-ok .dot{background:var(--good)}
+  .alert-warn .dot{background:var(--warn)}
+  .alert-err .dot{background:var(--bad)}
 
-  .result-panel{
-    position:relative;
-    background:
-      radial-gradient(600px 200px at 0% 0%, rgba(255,84,112,.18), transparent 70%),
-      linear-gradient(160deg, rgba(255,84,112,.10), rgba(15,22,36,.85));
-    border:1px solid rgba(255,84,112,.4); border-radius:16px; padding:18px 20px; margin-bottom:14px;
-    box-shadow:0 0 0 1px rgba(255,255,255,.04) inset, 0 20px 40px -24px rgba(255,84,112,.5);
+  /* 初始 hero */
+  .start-hero{text-align:center; padding:32px 16px}
+  .start-hero .icon{
+    font-size:42px; margin-bottom:6px;
+    filter:drop-shadow(0 4px 12px rgba(43,124,245,.3));
+  }
+  .start-hero h2{
+    font-size:16px; color:var(--txt); margin:0 0 6px;
+    letter-spacing:.3px; justify-content:center;
+  }
+  .start-hero h2::before{display:none}
+  .start-hero p{color:var(--sub); margin:0 0 16px; font-size:12px}
+
+  /* ============================================================
+     实时状态表格
+     ============================================================ */
+  .status-table{
+    width:100%; border-collapse:separate; border-spacing:0;
+    font-size:clamp(11.5px, 1.3vw, 13px);
+    background:rgba(255,255,255,0.6);
+    border:1px solid var(--glass-line);
+    border-radius:10px;
     overflow:hidden;
   }
-  .result-panel .head{font-size:11.5px; color:var(--sub); letter-spacing:1.4px; text-transform:uppercase; margin-bottom:6px;}
-  .result-panel .big{
-    font-size:34px; font-weight:900; letter-spacing:1.5px;
-    background:linear-gradient(90deg, #ff8fa6, #ff5470);
-    -webkit-background-clip:text; background-clip:text; color:transparent; line-height:1.1;
+  .status-table th,
+  .status-table td{
+    padding:9px 10px;
+    text-align:center;
+    border-bottom:1px solid var(--glass-line);
+    white-space:nowrap;
+    font-variant-numeric:tabular-nums;
   }
-  .result-panel .buy{
-    font-size:19px; font-weight:800;
-    background:linear-gradient(90deg, #7ef0c0, #31e0a0);
-    -webkit-background-clip:text; background-clip:text; color:transparent; margin-top:4px;
+  .status-table th{
+    background:rgba(240,245,252,0.9);
+    color:var(--sub);
+    font-weight:600;
+    font-size:clamp(10.5px, 1.15vw, 11.5px);
+    letter-spacing:.5px;
+    text-transform:uppercase;
   }
-  .result-panel .foot{display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-    margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,.06);}
+  .status-table tr:last-child td{border-bottom:none}
+
+  .status-table .tag-new{
+    color:var(--accent);
+    font-weight:700;
+    font-size:clamp(11px, 1.2vw, 12px);
+  }
+  .status-table .tag-pred{
+    color:var(--bad);
+    font-weight:700;
+    font-size:clamp(11px, 1.2vw, 12px);
+  }
+  .status-table .val-num{
+    color:var(--txt);
+    font-weight:700;
+  }
+  .status-table .val-combo{
+    font-weight:700;
+    color:var(--purple);
+  }
+  .status-table .val-pred-combo{
+    font-weight:700;
+    color:var(--bad);
+    letter-spacing:.3px;
+  }
+  .status-table .val-pred-buy{
+    color:var(--good);
+    font-weight:600;
+    font-size:clamp(10.5px, 1.15vw, 12px);
+  }
+  @media(max-width:560px){
+    .status-table th:nth-child(2),
+    .status-table td:nth-child(2){
+      /* 开奖时间在窄屏仍然保留，但缩短内边距 */
+      padding:8px 6px;
+    }
+  }
+
+  /* 倒计时 & 买入行 */
+  .status-foot{
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:8px;
+    margin-top:8px; padding-top:8px;
+    border-top:1px dashed var(--glass-line);
+    font-size:clamp(11px, 1.2vw, 12px);
+    color:var(--sub);
+  }
+  .status-foot .buy-line{
+    color:var(--good); font-weight:700;
+    letter-spacing:.3px;
+  }
+  .status-foot .buy-line .label{
+    color:var(--sub); font-weight:600; margin-right:4px;
+  }
   .countdown{
     font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-    font-size:22px; font-weight:800; color:var(--accent-3);
-    min-width:52px; display:inline-block; text-align:center;
+    font-size:clamp(14px, 1.6vw, 16px);
+    font-weight:800; color:var(--accent-3);
+    min-width:34px; display:inline-block; text-align:right;
   }
 
+  /* ============================================================
+     KPI
+     ============================================================ */
   .kpi{
     position:relative;
-    background:linear-gradient(160deg, rgba(30,45,70,.65), rgba(15,22,36,.75));
-    border:1px solid var(--glass-line); border-radius:14px; padding:14px 16px; overflow:hidden;
-    transition:border-color .2s ease, transform .2s ease;
+    background:rgba(255,255,255,0.75);
+    border:1px solid var(--glass-line);
+    border-radius:10px;
+    padding:9px 11px;
+    overflow:hidden;
   }
-  .kpi:hover{border-color:var(--glass-line-2); transform:translateY(-2px)}
-  .kpi::after{content:""; position:absolute; right:-30px; top:-30px;
-    width:100px; height:100px; border-radius:50%;
-    background:radial-gradient(circle, rgba(78,161,255,.18), transparent 70%); opacity:.9;}
-  .kpi .v{font-size:24px; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; letter-spacing:.3px;}
-  .kpi .k{font-size:11.5px; color:var(--sub); margin-top:4px; letter-spacing:.4px}
-  .kpi .v.good{color:var(--good)} .kpi .v.bad{color:var(--bad)}
-  .kpi .v.warn{color:var(--warn)} .kpi .v.purple{color:var(--purple)} .kpi .v.accent{color:var(--accent)}
-
-  .strategy-bars{display:grid; gap:10px; margin-top:4px}
-  .sbar-row{display:grid; grid-template-columns:120px 1fr 64px; gap:12px; align-items:center}
-  @media(max-width:520px){ .sbar-row{grid-template-columns:96px 1fr 56px} }
-  .sbar-label{font-size:12px; color:var(--txt-2); letter-spacing:.2px}
-  .sbar-track{height:16px; border-radius:8px; overflow:hidden;
-    background:rgba(255,255,255,.05); border:1px solid var(--glass-line); position:relative;}
-  .sbar-fill{height:100%; border-radius:8px; transition:width .5s cubic-bezier(.4,0,.2,1); position:relative;}
-  .sbar-fill::after{content:""; position:absolute; inset:0;
-    background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.25)); border-radius:inherit;}
-  .sbar-val{font-size:12px; font-family:ui-monospace,"SF Mono",Menlo,monospace; text-align:right; font-weight:700;}
-
-  .alert{display:flex; align-items:center; gap:10px;
-    padding:11px 16px; border-radius:12px; font-size:12.5px; margin-bottom:16px;
-    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);}
-  .alert-ok{background:rgba(49,224,160,.10); border:1px solid rgba(49,224,160,.35); color:#a8f0d0}
-  .alert-warn{background:rgba(255,188,66,.10); border:1px solid rgba(255,188,66,.35); color:#f5dc9e}
-  .alert-err{background:rgba(255,84,112,.10); border:1px solid rgba(255,84,112,.4); color:#ffb8c5}
-  .alert .dot{width:8px; height:8px; border-radius:50%; flex-shrink:0}
-  .alert-ok .dot{background:var(--good); box-shadow:0 0 10px var(--good)}
-  .alert-warn .dot{background:var(--warn); box-shadow:0 0 10px var(--warn)}
-  .alert-err .dot{background:var(--bad); box-shadow:0 0 10px var(--bad)}
-
-  canvas{width:100%; display:block}
-  .chart-box{position:relative; height:290px}
-  @media(max-width:620px){ .chart-box{height:230px} }
-  .note{font-size:11px; color:var(--sub); margin-top:10px; display:flex; gap:14px; flex-wrap:wrap;}
-  .note .legend-dot{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px}
-
-  table{width:100%; border-collapse:collapse; font-size:12px}
-  th,td{padding:8px 10px; text-align:right; border-bottom:1px solid rgba(120,160,220,.08); white-space:nowrap;}
-  th{color:var(--sub); font-weight:600; font-size:10.5px; letter-spacing:1px; text-transform:uppercase;
-    background:rgba(15,22,36,.9); position:sticky; top:0; z-index:2;}
-  th:first-child,td:first-child{text-align:left}
-  tbody tr{transition:background .15s ease}
-  tbody tr:hover{background:rgba(78,161,255,.05)}
-  .scroll{max-height:360px; overflow:auto; border:1px solid var(--glass-line); border-radius:12px; background:rgba(10,15,26,.4);}
-  .scroll::-webkit-scrollbar{width:8px; height:8px}
-  .scroll::-webkit-scrollbar-thumb{background:rgba(120,160,220,.25); border-radius:4px}
-  .hit{color:var(--good); font-weight:700}
-  .miss{color:var(--bad); font-weight:700}
-  .excl{color:var(--warn); font-weight:700}
-
-  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-  .pill{display:inline-flex; align-items:center; gap:6px;
-    padding:5px 12px; border-radius:20px; font-size:11.5px;
-    background:rgba(30,45,70,.6); border:1px solid var(--glass-line); color:var(--sub);}
-  .pill.ok{color:var(--good); border-color:rgba(49,224,160,.4)}
-  .pill.warn{color:var(--warn); border-color:rgba(255,188,66,.4)}
-
-  .start-hero{text-align:center; padding:48px 20px}
-  .start-hero .icon{font-size:56px; margin-bottom:10px; filter:drop-shadow(0 0 30px rgba(78,161,255,.5));}
-  .start-hero h2{font-size:20px; color:var(--txt); margin:0 0 8px; letter-spacing:.4px; justify-content:center;}
-  .start-hero h2::before{display:none}
-  .start-hero p{color:var(--sub); margin:0 0 24px; font-size:13px}
-
-  .bottom-bar{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
-    margin-top:20px; padding-top:16px; border-top:1px solid var(--glass-line);
-    font-size:11.5px; color:var(--sub);}
-  .mem-badge{
-    display:inline-flex; align-items:center; gap:6px;
-    padding:5px 11px; border-radius:20px; font-size:11.5px;
-    background:rgba(78,161,255,.10); border:1px solid rgba(78,161,255,.35);
-    color:var(--accent); font-weight:600; letter-spacing:.3px;
+  .kpi .v{
+    font-size:clamp(15px, 1.8vw, 18px);
+    font-weight:800; line-height:1.15;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.2px;
   }
-  .mem-dot{width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent)}
+  .kpi .k{
+    font-size:clamp(10.5px, 1.15vw, 11.5px);
+    color:var(--sub); margin-top:2px; letter-spacing:.2px;
+  }
+  .kpi .v.good{color:var(--good)}
+  .kpi .v.bad{color:var(--bad)}
+  .kpi .v.warn{color:var(--warn)}
+  .kpi .v.purple{color:var(--purple)}
+  .kpi .v.accent{color:var(--accent)}
+
+  /* ============================================================
+     预测明细表 —— 小字体，对齐，不溢出
+     ============================================================ */
+  .scroll{
+    width:100%;
+    overflow-x:auto;
+    overflow-y:auto;
+    max-height:340px;
+    border:1px solid var(--glass-line);
+    border-radius:10px;
+    background:rgba(255,255,255,0.6);
+  }
+  .scroll::-webkit-scrollbar{width:7px; height:7px}
+  .scroll::-webkit-scrollbar-thumb{background:rgba(100,130,180,.35); border-radius:4px}
+  .scroll::-webkit-scrollbar-thumb:hover{background:rgba(100,130,180,.5)}
+
+  .detail-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:clamp(10.5px, 1.1vw, 11.5px);
+    font-variant-numeric:tabular-nums;
+    table-layout:auto;
+  }
+  .detail-table thead th{
+    position:sticky; top:0; z-index:2;
+    padding:7px 8px;
+    background:rgba(240,245,252,0.97);
+    color:var(--sub);
+    font-weight:700;
+    font-size:clamp(9.5px, 1.02vw, 10.5px);
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    text-align:center;
+    border-bottom:1px solid var(--glass-line);
+    white-space:nowrap;
+  }
+  .detail-table tbody td{
+    padding:6px 8px;
+    text-align:center;
+    border-bottom:1px solid rgba(150,170,200,0.15);
+    white-space:nowrap;
+    color:var(--txt-2);
+    font-weight:500;
+  }
+  .detail-table tbody tr:last-child td{border-bottom:none}
+  .detail-table tbody tr:hover td{background:rgba(43,124,245,.05)}
+  .detail-table .c-nbr{font-weight:700; color:var(--txt)}
+  .detail-table .c-time{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:0.95em; color:var(--sub)}
+  .detail-table .c-num{font-weight:700; color:var(--txt)}
+  .detail-table .c-combo{font-weight:700; color:var(--purple)}
+  .detail-table .c-excl{font-weight:700; color:var(--warn)}
+  .detail-table .c-hit{font-weight:800; color:var(--good)}
+  .detail-table .c-miss{font-weight:800; color:var(--bad)}
+
+  /* ============================================================
+     底部信息条
+     ============================================================ */
+  .bottom-info{
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:8px;
+    margin-top:10px;
+    font-size:11.5px; color:var(--sub);
+  }
+
+  /* ============================================================
+     隐藏区块(按要求不显示)
+     ============================================================ */
+  #chartsArea, #weightsCard{display:none !important}
 </style>
 </head>
 <body>
@@ -234,12 +371,13 @@
 
 <div class="wrap">
 
+  <!-- Hero -->
   <div class="hero">
     <div>
       <h1>PC28 · 四组合排除法实时预测</h1>
-      <div class="sub">IndexedDB 记忆库 · 四策略动态加权 · 每 30 秒自动刷新 · 全量历史不丢失</div>
+      <div class="sub">本地记忆库 · 四策略动态加权 · 每 30 秒自动同步开奖</div>
     </div>
-    <div class="row">
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
       <div class="mem-badge"><span class="mem-dot"></span><span id="memBadge">本地记忆 0 期</span></div>
       <div class="live-badge"><span class="live-dot"></span>LIVE</div>
     </div>
@@ -251,85 +389,65 @@
   </div>
 
   <div class="card start-hero" id="startHero">
-    <div class="icon">🧠</div>
-    <h2>正在唤醒本地记忆库</h2>
+    <div class="icon">📡</div>
+    <h2>正在唤醒记忆库</h2>
     <p>IndexedDB 读取 → 接口增量补新 → 自动预测</p>
-    <div class="row" style="justify-content:center">
-      <button id="btnStartRefresh">立即刷新</button>
-    </div>
   </div>
 
+  <!-- 实时状态 -->
   <div class="card" id="statusCard" style="display:none">
     <h2>实时状态</h2>
-    <div class="status-grid" id="latestGrid"></div>
-
-    <div class="result-panel">
-      <div class="head">下一期预测 · 应排除组合</div>
-      <div class="big" id="predExclude">—</div>
-      <div class="head" style="margin-top:12px">推荐买入</div>
-      <div class="buy" id="predBuy">—</div>
-      <div class="foot">
-        <div>
-          <div style="font-size:11px;color:var(--sub);letter-spacing:1px">距下次刷新</div>
-          <div class="countdown" id="countdown">30</div>
-        </div>
-        <div style="flex:1"></div>
-        <button id="btnRefresh">手动刷新</button>
-      </div>
+    <div id="latestGrid"></div>
+    <div class="status-foot">
+      <div class="buy-line" id="buyLine"><span class="label">推荐买入</span>—</div>
+      <div>距下次同步 <span class="countdown" id="countdown">30</span> 秒</div>
     </div>
-
-    <div class="row">
-      <span class="pill" id="lastUpdate">—</span>
-      <span class="pill" id="dataCount">0 期</span>
+    <div class="row" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+      <span class="pill" id="lastUpdate" style="display:inline-flex; padding:3px 10px; border-radius:14px; font-size:11px; background:rgba(240,245,252,.9); border:1px solid var(--glass-line); color:var(--sub)">—</span>
+      <span class="pill" id="dataCount" style="display:inline-flex; padding:3px 10px; border-radius:14px; font-size:11px; background:rgba(240,245,252,.9); border:1px solid var(--glass-line); color:var(--sub)">0 期</span>
     </div>
   </div>
 
-  <div id="chartsArea" style="display:none">
-    <div class="grid g2">
+  <!-- 隐藏的图表容器(保留 DOM，方便日后恢复) -->
+  <div id="chartsArea">
+    <div class="grid" style="grid-template-columns:1fr 1fr; gap:14px">
       <div class="card">
         <h2>滚动 30 期命中率</h2>
-        <div class="chart-box"><canvas id="chartRoll"></canvas></div>
-        <div class="note">
-          <span><span class="legend-dot" style="background:#4ea1ff"></span>滚动命中率</span>
-          <span><span class="legend-dot" style="background:#ff5470"></span>85% 目标</span>
-          <span><span class="legend-dot" style="background:#5b6b7d"></span>75% 基线</span>
-        </div>
+        <div class="chart-box" style="position:relative;height:290px"><canvas id="chartRoll"></canvas></div>
       </div>
       <div class="card">
         <h2>累计命中率</h2>
-        <div class="chart-box"><canvas id="chartCum"></canvas></div>
-        <div class="note">
-          <span><span class="legend-dot" style="background:#31e0a0"></span>累计命中率</span>
-          <span><span class="legend-dot" style="background:#ff5470"></span>85% 目标</span>
-        </div>
+        <div class="chart-box" style="position:relative;height:290px"><canvas id="chartCum"></canvas></div>
       </div>
     </div>
   </div>
 
+  <!-- KPI -->
   <div class="card" id="statsCard" style="display:none">
     <h2>统计面板</h2>
     <div class="grid g4" id="kpis"></div>
   </div>
 
+  <!-- 隐藏的策略权重容器 -->
   <div class="card" id="weightsCard" style="display:none">
-    <h2>策略权重 · softmax(T=1.0)</h2>
+    <h2>策略权重</h2>
     <div class="strategy-bars" id="strategyBars"></div>
-    <div class="note">
-      <span>A · AR 和值预测</span>
-      <span>B · 一阶马尔可夫</span>
-      <span>C · 20 期频率偏离</span>
-      <span>D · 随机基线</span>
-    </div>
   </div>
 
+  <!-- 预测明细 -->
   <div class="card" id="detailCard" style="display:none">
     <h2>预测明细 · 最近 40 期</h2>
     <div class="scroll">
-      <table id="detailTable">
+      <table class="detail-table" id="detailTable">
         <thead>
           <tr>
-            <th>期号</th><th>和值</th><th>实际组合</th><th>排除组合</th><th>结果</th>
-            <th>μ̂</th><th>σ</th><th>策略明细</th>
+            <th>期号</th>
+            <th>开奖时间</th>
+            <th>开奖号码</th>
+            <th>和值</th>
+            <th>组合</th>
+            <th>排除组合</th>
+            <th>结果</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -337,9 +455,9 @@
     </div>
   </div>
 
-  <div class="bottom-bar">
+  <!-- 底部 -->
+  <div class="bottom-info">
     <div id="footerInfo">本地记忆 0 期</div>
-    <button id="btnClear" class="btn-clear">清除记忆库重新初始化</button>
   </div>
 
 </div>
@@ -349,9 +467,9 @@
 // 常量
 // ================================================================
 const API_URL = 'https://pc28.help/api/kj.json?nbr=80';
-const POLL_INTERVAL = 30;      // 秒
+const POLL_INTERVAL = 30;
 const MAX_RETRY = 3;
-const RETRY_DELAY = 5000;      // ms
+const RETRY_DELAY = 5000;
 const MIN_DATA = 50;
 const TRAIN_MIN = 50;
 const EVAL_WIN = 30;
@@ -359,13 +477,12 @@ const STRATEGY_WIN = 30;
 const REFIT_INTERVAL = 50;
 const MARKOV_INTERVAL = 100;
 
-// 存储配置
 const IDB_NAME = 'pc28_memory_db';
 const IDB_STORE = 'history';
 const IDB_VERSION = 1;
-const IDB_MAX = 10000;         // IndexedDB 上限
-const LS_KEY = 'pc28_memory';   // localStorage 兜底键（与需求一致）
-const LS_MAX = 5000;           // localStorage 上限
+const IDB_MAX = 10000;
+const LS_KEY = 'pc28_memory';
+const LS_MAX = 5000;
 
 const COMBOS = {
   '大单': [15,17,19,21,23,25,27],
@@ -375,7 +492,7 @@ const COMBOS = {
 };
 const NAMES = ['大单', '大双', '小单', '小双'];
 const STRAT_NAMES = ['A · AR 和值', 'B · 一阶马尔可夫', 'C · 20 期频率', 'D · 随机基线'];
-const STRAT_COLORS = ['#4ea1ff', '#31e0a0', '#ffbc42', '#7f93ab'];
+const STRAT_COLORS = ['#2b7cf5', '#10a37f', '#d97706', '#7f93ab'];
 
 function valToCombo(v){
   for(const n of NAMES) if(COMBOS[n].includes(v)) return n;
@@ -596,14 +713,12 @@ function softmax(scores, T){
 }
 
 // ================================================================
-// 【核心】记忆库：IndexedDB 优先 + localStorage 兜底
-// 严格约束：只做 get/put/add，绝不 clear() / removeItem()
+// 记忆库：IndexedDB + localStorage 兜底(与原实现一致)
 // ================================================================
 const Memory = (() => {
   let idb = null;
   let useIDB = false;
 
-  // 打开 IndexedDB（不升级数据结构，仅建库/store）
   async function openIDB(){
     if(!('indexedDB' in window)) throw new Error('IndexedDB 不可用');
     return new Promise((resolve, reject) => {
@@ -620,7 +735,6 @@ const Memory = (() => {
       req.onblocked = () => reject(new Error('IndexedDB blocked'));
     });
   }
-
   async function init(){
     try{
       idb = await openIDB();
@@ -632,8 +746,6 @@ const Memory = (() => {
       useIDB = false;
     }
   }
-
-  // 读取全量（升序）
   async function getAll(){
     if(useIDB){
       return new Promise((resolve, reject) => {
@@ -650,7 +762,6 @@ const Memory = (() => {
         } catch(e){ reject(e); }
       });
     }
-    // localStorage 兜底
     try{
       const raw = localStorage.getItem(LS_KEY);
       if(!raw) return [];
@@ -668,8 +779,6 @@ const Memory = (() => {
       return [];
     }
   }
-
-  // 批量追加（只增不改，可容忍同 nbr 覆盖，但外部已保证去重）
   async function putMany(records){
     if(!records.length) return 0;
     if(useIDB){
@@ -678,26 +787,19 @@ const Memory = (() => {
           const tx = idb.transaction(IDB_STORE, 'readwrite');
           const store = tx.objectStore(IDB_STORE);
           for(const r of records){
-            store.put(r);   // put：nbr 存在则更新、不存在则新增；不会清库
+            store.put(r);
           }
           tx.oncomplete = () => resolve(records.length);
           tx.onerror = (e) => reject(e.target.error);
         } catch(e){ reject(e); }
       });
     }
-    // localStorage 兜底：合并写回
     try{
       const cur = await getAll();
       const map = new Map(cur.map(r => [r.nbr, r]));
-      for(const r of records){
-        map.set(r.nbr, r);
-      }
-      let arr = Array.from(map.values()).sort(
-        (a,b) => parseInt(a.nbr) - parseInt(b.nbr)
-      );
-      if(arr.length > LS_MAX){
-        arr = arr.slice(-LS_MAX);
-      }
+      for(const r of records) map.set(r.nbr, r);
+      let arr = Array.from(map.values()).sort((a,b) => parseInt(a.nbr) - parseInt(b.nbr));
+      if(arr.length > LS_MAX) arr = arr.slice(-LS_MAX);
       localStorage.setItem(LS_KEY, JSON.stringify(arr));
       return records.length;
     } catch(e){
@@ -705,8 +807,6 @@ const Memory = (() => {
       return 0;
     }
   }
-
-  // 裁剪：只保留最新的 max 条（删除最旧）
   async function trimToMax(max){
     if(useIDB){
       return new Promise((resolve) => {
@@ -718,15 +818,12 @@ const Memory = (() => {
             const cnt = countReq.result;
             if(cnt <= max){ resolve(0); return; }
             const toDelete = cnt - max;
-            // 用 nbr 升序游标，删除最旧的 toDelete 条
             const curReq = store.openCursor();
             let deleted = 0;
             curReq.onsuccess = (e) => {
               const cur = e.target.result;
               if(cur && deleted < toDelete){
-                cur.delete();
-                deleted++;
-                cur.continue();
+                cur.delete(); deleted++; cur.continue();
               } else {
                 resolve(deleted);
               }
@@ -737,7 +834,6 @@ const Memory = (() => {
         } catch(e){ resolve(0); }
       });
     }
-    // localStorage 兜底
     try{
       const arr = await getAll();
       if(arr.length > max){
@@ -748,8 +844,6 @@ const Memory = (() => {
       return 0;
     } catch(e){ return 0; }
   }
-
-  // 仅用户手动调用
   async function clearAll(){
     if(useIDB){
       return new Promise((resolve) => {
@@ -766,7 +860,6 @@ const Memory = (() => {
       return true;
     } catch(e){ return false; }
   }
-
   return { init, getAll, putMany, trimToMax, clearAll, isIDB: () => useIDB };
 })();
 
@@ -827,8 +920,6 @@ function parseRecord(item){
     time: item.time || ''
   };
 }
-
-// 与内存中的 state.rawData 合并，仅追加不覆盖
 function mergeIntoState(incomingItems){
   const map = new Map(state.rawData.map(r => [r.nbr, r]));
   const toPersist = [];
@@ -841,7 +932,6 @@ function mergeIntoState(incomingItems){
       toPersist.push(rec);
       added++;
     } else {
-      // 已存在：保护本地，字段缺失时补齐（同时写回）
       const cur = map.get(rec.nbr);
       let changed = false;
       if(!cur.number && rec.number){ cur.number = rec.number; changed = true; }
@@ -855,8 +945,6 @@ function mergeIntoState(incomingItems){
   );
   return { merged, toPersist, added };
 }
-
-// 把合并结果装入 state（不写存储，写存储由调用者负责）
 function applyMerged(merged){
   state.rawData = merged;
   state.values = merged.map(r => r.num);
@@ -864,7 +952,7 @@ function applyMerged(merged){
 }
 
 // ================================================================
-// 预测引擎
+// 预测引擎(完全不变)
 // ================================================================
 function refitAR(t){
   const trainStart = Math.max(0, t - 1000);
@@ -876,36 +964,29 @@ function refitAR(t){
   const bestP = selectBestP(residuals, maxP);
   return fitAR(residuals, bestP);
 }
-
 function runBacktestIncremental(){
   const values = state.values;
   const comboSeq = state.comboSeq;
   const n = values.length;
   if(n < MIN_DATA) return;
-
   const startT = Math.max(TRAIN_MIN, state.records.length + TRAIN_MIN);
-
   if(!state.currentAR){
     state.currentW = optimizeWindow(values, Math.min(TRAIN_MIN, n), 5, 50, Math.min(100, n));
     state.currentAR = refitAR(TRAIN_MIN);
     state.currentSigma = state.currentAR ? state.currentAR.sigma : 3.0;
   }
-
   for(let t = startT; t < n; t++){
     const stepsDone = t - TRAIN_MIN;
-
     if(stepsDone > 0 && stepsDone % REFIT_INTERVAL === 0){
       state.currentW = optimizeWindow(values, t, 5, 50, Math.min(100, t));
       state.currentAR = refitAR(t);
       state.currentSigma = state.currentAR ? state.currentAR.sigma : 3.0;
     }
     if(state.markovTable === null || (stepsDone > 0 && stepsDone % MARKOV_INTERVAL === 0)){
-      // 马尔可夫：全量或最近 1000 期
       const mStart = Math.max(0, t - 1000);
       state.markovTable = buildMarkov1(comboSeq, mStart, t);
       state.markovBuiltAt = t;
     }
-
     let stratA = null;
     if(state.currentAR){
       const p = state.currentAR.p;
@@ -923,7 +1004,6 @@ function runBacktestIncremental(){
       const { probs, excluded } = comboProbabilities(mu, sigma);
       stratA = { excluded, probs, mu, sigma };
     }
-
     let stratB = null;
     if(state.markovTable && t >= 1){
       const prev = comboSeq[t-1];
@@ -932,18 +1012,14 @@ function runBacktestIncremental(){
         if(r) stratB = { excluded: r.excluded, probs: r.probs };
       }
     }
-
     const stratC = freqPredict(comboSeq, t, 20);
     const stratD = randomPredict();
-
     const actual = comboSeq[t];
     const hitA = stratA && stratA.excluded !== actual ? 1 : 0;
     const hitB = stratB && stratB.excluded !== actual ? 1 : 0;
     const hitC = stratC.excluded !== actual ? 1 : 0;
     const hitD = stratD.excluded !== actual ? 1 : 0;
-
     state.hitsByStrategy.push([hitA, hitB, hitC, hitD]);
-
     const winStart = Math.max(0, state.hitsByStrategy.length - STRATEGY_WIN);
     const acc = [0, 0, 0, 0];
     const cnt = state.hitsByStrategy.length - winStart;
@@ -952,18 +1028,14 @@ function runBacktestIncremental(){
     }
     const accRates = acc.map(a => cnt > 0 ? a / cnt : 0.25);
     const weights = softmax(accRates, 1.0);
-
     const vote = Object.fromEntries(NAMES.map(n => [n, 0]));
     if(stratA) vote[stratA.excluded] += weights[0];
     if(stratB) vote[stratB.excluded] += weights[1];
     vote[stratC.excluded] += weights[2];
     vote[stratD.excluded] += weights[3];
-
     let finalExcluded = NAMES[0], mx = -Infinity;
     for(const c of NAMES) if(vote[c] > mx){ mx = vote[c]; finalExcluded = c; }
-
     const hit = finalExcluded !== actual;
-
     state.records.push({
       t, nbr: state.rawData[t].nbr, value: values[t], actual, excluded: finalExcluded, hit,
       mu: stratA ? stratA.mu : null,
@@ -978,13 +1050,11 @@ function runBacktestIncremental(){
     });
   }
 }
-
 function predictNext(){
   const values = state.values;
   const comboSeq = state.comboSeq;
   const n = values.length;
   if(n < MIN_DATA) return null;
-
   const t = n;
   let stratA = null;
   if(state.currentAR){
@@ -1003,7 +1073,6 @@ function predictNext(){
     const { probs, excluded } = comboProbabilities(mu, sigma);
     stratA = { excluded, probs, mu, sigma };
   }
-
   let stratB = null;
   if(state.markovTable && t >= 1){
     const prev = comboSeq[t-1];
@@ -1014,7 +1083,6 @@ function predictNext(){
   }
   const stratC = freqPredict(comboSeq, t, 20);
   const stratD = randomPredict();
-
   let weights;
   if(state.hitsByStrategy.length < 5){
     weights = [0.25, 0.25, 0.25, 0.25];
@@ -1028,16 +1096,13 @@ function predictNext(){
     const accRates = acc.map(a => cnt > 0 ? a / cnt : 0.25);
     weights = softmax(accRates, 1.0);
   }
-
   const vote = Object.fromEntries(NAMES.map(n => [n, 0]));
   if(stratA) vote[stratA.excluded] += weights[0];
   if(stratB) vote[stratB.excluded] += weights[1];
   vote[stratC.excluded] += weights[2];
   vote[stratD.excluded] += weights[3];
-
   let finalExcluded = NAMES[0], mx = -Infinity;
   for(const c of NAMES) if(vote[c] > mx){ mx = vote[c]; finalExcluded = c; }
-
   return {
     excluded: finalExcluded,
     buys: NAMES.filter(n => n !== finalExcluded),
@@ -1054,7 +1119,7 @@ function predictNext(){
 }
 
 // ================================================================
-// 统计
+// 统计(完全不变)
 // ================================================================
 function computeStats(){
   const hits = state.records.map(r => r.hit ? 1 : 0);
@@ -1088,32 +1153,77 @@ function computeStats(){
 // ================================================================
 let chartRoll = null, chartCum = null;
 
+// 时间格式化：截断秒，保持对齐
+function formatTimeShort(date, time){
+  if(!date && !time) return '—';
+  const d = (date || '').replace(/^\d{2}(\d{2})-(\d{2})-(\d{2})$/, '$2-$3'); // 2026-09-08 → 09-08
+  const t = (time || '').slice(0, 5); // 20:43:00 → 20:43
+  return d ? `${d} ${t}` : t;
+}
+
 function renderLatest(){
   const last = state.rawData[state.rawData.length - 1];
   if(!last) return;
 
   document.getElementById('startHero').style.display = 'none';
   document.getElementById('statusCard').style.display = 'block';
-  document.getElementById('chartsArea').style.display = 'block';
   document.getElementById('statsCard').style.display = 'block';
-  document.getElementById('weightsCard').style.display = 'block';
   document.getElementById('detailCard').style.display = 'block';
 
-  document.getElementById('latestGrid').innerHTML = `
-    <div class="status-item"><div class="lbl">最新期号</div><div class="val">${last.nbr}</div></div>
-    <div class="status-item"><div class="lbl">开奖号码</div><div class="val accent">${last.number || '—'}</div></div>
-    <div class="status-item"><div class="lbl">和值</div><div class="val">${last.num}</div></div>
-    <div class="status-item"><div class="lbl">组合</div><div class="val purple">${last.combination}</div></div>
-    <div class="status-item"><div class="lbl">开奖时间</div><div class="val" style="font-size:13px">${last.date} ${last.time}</div></div>
-  `;
+  // 下一期期号 = 最新期号 + 1
+  const nextNbr = (() => {
+    const n = parseInt(last.nbr, 10);
+    return Number.isFinite(n) ? String(n + 1) : '—';
+  })();
 
   const pred = state.nextPrediction;
+  const timeStr = formatTimeShort(last.date, last.time);
+
+  // 预测行组合列：显示排除组合
+  const predComboCell = pred
+    ? `<span class="val-pred-combo">排除 ${pred.excluded}</span>`
+    : `—`;
+
+  // 状态表格
+  document.getElementById('latestGrid').innerHTML = `
+    <table class="status-table">
+      <thead>
+        <tr>
+          <th>类型</th>
+          <th>开奖时间</th>
+          <th>期号</th>
+          <th>开奖号码</th>
+          <th>和值</th>
+          <th>组合</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="tag-new">最新开奖</td>
+          <td>${timeStr}</td>
+          <td class="val-num">${last.nbr}</td>
+          <td class="val-num">${last.number || '—'}</td>
+          <td class="val-num">${last.num}</td>
+          <td class="val-combo">${last.combination}</td>
+        </tr>
+        <tr>
+          <td class="tag-pred">下期预测</td>
+          <td>待开奖</td>
+          <td class="val-num">${nextNbr}</td>
+          <td>—</td>
+          <td>—</td>
+          <td>${predComboCell}</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+
+  // 推荐买入行
+  const buyLine = document.getElementById('buyLine');
   if(pred){
-    document.getElementById('predExclude').textContent = pred.excluded;
-    document.getElementById('predBuy').textContent = pred.buys.join(' · ');
+    buyLine.innerHTML = `<span class="label">推荐买入</span>${pred.buys.join(' · ')}`;
   } else {
-    document.getElementById('predExclude').textContent = '—';
-    document.getElementById('predBuy').textContent = '—';
+    buyLine.innerHTML = `<span class="label">推荐买入</span>—`;
   }
 
   const n = state.rawData.length;
@@ -1143,132 +1253,24 @@ function renderKPIs(){
   ).join('');
 }
 
-function renderWeights(){
-  const pred = state.nextPrediction;
-  if(!pred) return;
-  document.getElementById('strategyBars').innerHTML = STRAT_NAMES.map((name, i) => {
-    const w = pred.weights[i] || 0;
-    const pct = (w * 100).toFixed(1);
-    return `<div class="sbar-row">
-      <div class="sbar-label">${name}</div>
-      <div class="sbar-track">
-        <div class="sbar-fill" style="width:${pct}%;background:linear-gradient(90deg, ${STRAT_COLORS[i]}cc, ${STRAT_COLORS[i]})"></div>
-      </div>
-      <div class="sbar-val" style="color:${STRAT_COLORS[i]}">${pct}%</div>
-    </div>`;
-  }).join('');
-}
-
-function renderCharts(){
-  const stats = computeStats();
-  if(!stats) return;
-  const records = state.records;
-  const labels = records.map(r => r.nbr);
-  const rollData = new Array(records.length).fill(null);
-  for(let i = 0; i < stats.roll.length; i++){
-    rollData[i + EVAL_WIN - 1] = stats.roll[i] * 100;
-  }
-
-  const gridColor = 'rgba(120,160,220,0.08)';
-  const tickColor = '#7f93ab';
-
-  if(chartRoll) chartRoll.destroy();
-  chartRoll = new Chart(document.getElementById('chartRoll'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: '滚动 30 期命中率', data: rollData,
-          borderColor: '#4ea1ff',
-          backgroundColor: (ctx) => {
-            const {ctx: c, chartArea} = ctx.chart;
-            if(!chartArea) return 'rgba(78,161,255,.12)';
-            const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-            g.addColorStop(0, 'rgba(78,161,255,.32)');
-            g.addColorStop(1, 'rgba(78,161,255,.02)');
-            return g;
-          },
-          borderWidth: 2, pointRadius: 0, fill: true, tension: 0.2, spanGaps: true
-        },
-        {
-          label: '85% 目标', data: labels.map(() => 85),
-          borderColor: '#ff5470', borderWidth: 1.4, borderDash: [6,4], pointRadius: 0
-        },
-        {
-          label: '75% 基线', data: labels.map(() => 75),
-          borderColor: '#5b6b7d', borderWidth: 1, borderDash: [3,4], pointRadius: 0
-        }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
-      interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: tickColor, maxTicksLimit: 6, font:{size:10} }, grid: { color: gridColor } },
-        y: { min: 0, max: 100, ticks: { color: tickColor, callback: v => v + '%', font:{size:10} }, grid: { color: gridColor } }
-      }
-    }
-  });
-
-  const cum = [];
-  let sum = 0;
-  for(let i = 0; i < stats.hits.length; i++){
-    sum += stats.hits[i];
-    cum.push(sum / (i + 1) * 100);
-  }
-
-  if(chartCum) chartCum.destroy();
-  chartCum = new Chart(document.getElementById('chartCum'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: '累计命中率', data: cum,
-        borderColor: '#31e0a0',
-        backgroundColor: (ctx) => {
-          const {ctx: c, chartArea} = ctx.chart;
-          if(!chartArea) return 'rgba(49,224,160,.12)';
-          const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          g.addColorStop(0, 'rgba(49,224,160,.32)');
-          g.addColorStop(1, 'rgba(49,224,160,.02)');
-          return g;
-        },
-        borderWidth: 2, pointRadius: 0, fill: true, tension: 0.2
-      },
-      {
-        label: '85% 目标', data: labels.map(() => 85),
-        borderColor: '#ff5470', borderWidth: 1.4, borderDash: [6,4], pointRadius: 0
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
-      interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: tickColor, maxTicksLimit: 6, font:{size:10} }, grid: { color: gridColor } },
-        y: { min: 40, max: 100, ticks: { color: tickColor, callback: v => v + '%', font:{size:10} }, grid: { color: gridColor } }
-      }
-    }
-  });
-}
-
+// 明细表：新增开奖时间、开奖号码列，字体小而对齐
 function renderTable(){
   const tbody = document.querySelector('#detailTable tbody');
   const records = state.records.slice(-40).reverse();
   tbody.innerHTML = records.map(r => {
-    const sExcl = r.stratExcl.map((e, i) => `${['A','B','C','D'][i]}:${e || '—'}`).join(' ');
+    // 从 rawData 取原始 date/time/number
+    const raw = state.rawData[r.t] || {};
+    const timeStr = formatTimeShort(raw.date, raw.time);
+    const numberStr = raw.number || '—';
     return `
       <tr>
-        <td>${r.nbr}</td>
-        <td>${r.value}</td>
-        <td>${r.actual}</td>
-        <td class="excl">${r.excluded}</td>
-        <td class="${r.hit ? 'hit' : 'miss'}">${r.hit ? '命中' : '未中'}</td>
-        <td>${r.mu !== null ? r.mu.toFixed(2) : '—'}</td>
-        <td>${r.sigma !== null ? r.sigma.toFixed(3) : '—'}</td>
-        <td style="font-size:10.5px;color:#7f93ab">${sExcl}</td>
+        <td class="c-nbr">${r.nbr}</td>
+        <td class="c-time">${timeStr}</td>
+        <td class="c-num">${numberStr}</td>
+        <td class="c-num">${r.value}</td>
+        <td class="c-combo">${r.actual}</td>
+        <td class="c-excl">${r.excluded}</td>
+        <td class="${r.hit ? 'c-hit' : 'c-miss'}">${r.hit ? '命中' : '未中'}</td>
       </tr>
     `;
   }).join('');
@@ -1278,8 +1280,6 @@ function renderAll(){
   if(state.rawData.length === 0) return;
   renderLatest();
   renderKPIs();
-  renderWeights();
-  renderCharts();
   renderTable();
 }
 
@@ -1292,7 +1292,6 @@ function setAlert(msg, cls){
   document.getElementById('alertMsg').textContent = msg;
 }
 
-// 从记忆库装载到 state
 async function bootstrapFromMemory(){
   const stored = await Memory.getAll();
   if(stored.length > 0){
@@ -1310,19 +1309,11 @@ async function bootstrapFromMemory(){
 async function fetchAndUpdate(silent){
   try{
     const items = await fetchDataWithRetry();
-
-    // 以 state.rawData（含记忆库全量）为基准合并
     const { merged, toPersist, added } = mergeIntoState(items);
-
-    // 先写入记忆库（只 put 追加，不 clear）
     if(toPersist.length){
       await Memory.putMany(toPersist);
     }
-
-    // 数据量超限裁剪最旧
     const trimmed = await Memory.trimToMax(IDB_MAX);
-
-    // 应用到内存
     applyMerged(merged);
 
     document.getElementById('dataCount').textContent = state.rawData.length + ' 期';
@@ -1331,11 +1322,9 @@ async function fetchAndUpdate(silent){
     document.getElementById('memBadge').textContent = `本地记忆 ${state.rawData.length} 期`;
 
     if(state.rawData.length < MIN_DATA){
-      setAlert(`数据不足（当前 ${state.rawData.length} 期，需要至少 ${MIN_DATA} 期），请等待积累。`, 'warn');
+      setAlert(`数据不足(当前 ${state.rawData.length} 期，需要至少 ${MIN_DATA} 期)，请等待积累。`, 'warn');
       return;
     }
-
-    // 增量回测 + 预测
     runBacktestIncremental();
     state.nextPrediction = predictNext();
     renderAll();
@@ -1372,82 +1361,25 @@ function startPolling(){
   }, POLL_INTERVAL * 1000);
 }
 
-function resetRuntimeState(){
-  state.values = [];
-  state.comboSeq = [];
-  state.records = [];
-  state.hitsByStrategy = [];
-  state.currentAR = null;
-  state.currentW = 20;
-  state.currentSigma = 3.0;
-  state.markovTable = null;
-  state.markovBuiltAt = -1;
-  state.nextPrediction = null;
-}
-
-// ================================================================
-// 事件绑定
-// ================================================================
-document.getElementById('btnRefresh').onclick = () => {
-  fetchAndUpdate(false);
-  state.countdown = POLL_INTERVAL;
-};
-document.getElementById('btnStartRefresh').onclick = () => {
-  fetchAndUpdate(false);
-};
-
-// 【唯一清除入口】用户点击才执行
-document.getElementById('btnClear').onclick = async () => {
-  if(!confirm('确定清除记忆库并重新初始化？此操作不可恢复。')) return;
-  await Memory.clearAll();
-  console.log('[clear] 记忆库已清除');
-  state.rawData = [];
-  resetRuntimeState();
-  document.getElementById('dataCount').textContent = '0 期';
-  document.getElementById('lastUpdate').textContent = '—';
-  document.getElementById('footerInfo').textContent = '本地记忆 0 期';
-  document.getElementById('memBadge').textContent = '本地记忆 0 期';
-  document.getElementById('statusCard').style.display = 'none';
-  document.getElementById('chartsArea').style.display = 'none';
-  document.getElementById('statsCard').style.display = 'none';
-  document.getElementById('weightsCard').style.display = 'none';
-  document.getElementById('detailCard').style.display = 'none';
-  document.getElementById('startHero').style.display = 'block';
-  setAlert('记忆库已清除，正在重新初始化…', 'warn');
-  fetchAndUpdate(false);
-};
-
 // ================================================================
 // 初始化
 // ================================================================
 (async function init(){
   setAlert('正在唤醒记忆库…', 'warn');
-
-  // 1) 初始化存储引擎（IndexedDB 优先，失败降级 localStorage）
   await Memory.init();
-
-  // 2) 优先从记忆库读取全量
   const localCount = await bootstrapFromMemory();
-
-  // 3) 接口拉取（合并追加）
   await fetchAndUpdate(localCount > 0);
-
-  // 4) 启动倒计时与轮询
   startCountdown();
   startPolling();
 
-  // 5) 页面从后台恢复时立即刷新一次
   document.addEventListener('visibilitychange', () => {
     if(document.visibilityState === 'visible'){
       fetchAndUpdate(true);
       state.countdown = POLL_INTERVAL;
     }
   });
-
-  // 6) 页面卸载前把内存数据再 put 一次（双保险，仍不清库）
   window.addEventListener('beforeunload', () => {
     if(state.rawData.length){
-      // 同步 put 不需要等待
       try{ Memory.putMany(state.rawData); }catch(e){}
     }
   });
