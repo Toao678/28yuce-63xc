@@ -1345,3 +1345,114 @@ async function fetchAndUpdate(silent){
       const trimMsg = trimmed > 0 ? ` · 裁剪 ${trimmed} 期` : '';
       setAlert(`本地记忆 ${state.rawData.length} 期 · 新增 ${added} 期${trimMsg} · 引擎 ${engineLabel} · 预测已更新`, 'ok');
     } else {
+      setAlert(`本地记忆 ${state.rawData.length} 期 · 无新增 · 引擎 ${engineLabel}`, 'ok');
+    }
+  } catch(err){
+    console.error(err);
+    setAlert('数据获取异常：' + err.message, 'err');
+  }
+}
+
+function startCountdown(){
+  if(state.countdownTimer) clearInterval(state.countdownTimer);
+  state.countdown = POLL_INTERVAL;
+  document.getElementById('countdown').textContent = state.countdown;
+  state.countdownTimer = setInterval(() => {
+    state.countdown--;
+    document.getElementById('countdown').textContent = Math.max(0, state.countdown);
+    if(state.countdown <= 0) state.countdown = POLL_INTERVAL;
+  }, 1000);
+}
+
+function startPolling(){
+  if(state.pollTimer) clearInterval(state.pollTimer);
+  state.pollTimer = setInterval(() => {
+    fetchAndUpdate(true);
+    state.countdown = POLL_INTERVAL;
+  }, POLL_INTERVAL * 1000);
+}
+
+function resetRuntimeState(){
+  state.values = [];
+  state.comboSeq = [];
+  state.records = [];
+  state.hitsByStrategy = [];
+  state.currentAR = null;
+  state.currentW = 20;
+  state.currentSigma = 3.0;
+  state.markovTable = null;
+  state.markovBuiltAt = -1;
+  state.nextPrediction = null;
+}
+
+// ================================================================
+// 事件绑定
+// ================================================================
+document.getElementById('btnRefresh').onclick = () => {
+  fetchAndUpdate(false);
+  state.countdown = POLL_INTERVAL;
+};
+document.getElementById('btnStartRefresh').onclick = () => {
+  fetchAndUpdate(false);
+};
+
+// 【唯一清除入口】用户点击才执行
+document.getElementById('btnClear').onclick = async () => {
+  if(!confirm('确定清除记忆库并重新初始化？此操作不可恢复。')) return;
+  await Memory.clearAll();
+  console.log('[clear] 记忆库已清除');
+  state.rawData = [];
+  resetRuntimeState();
+  document.getElementById('dataCount').textContent = '0 期';
+  document.getElementById('lastUpdate').textContent = '—';
+  document.getElementById('footerInfo').textContent = '本地记忆 0 期';
+  document.getElementById('memBadge').textContent = '本地记忆 0 期';
+  document.getElementById('statusCard').style.display = 'none';
+  document.getElementById('chartsArea').style.display = 'none';
+  document.getElementById('statsCard').style.display = 'none';
+  document.getElementById('weightsCard').style.display = 'none';
+  document.getElementById('detailCard').style.display = 'none';
+  document.getElementById('startHero').style.display = 'block';
+  setAlert('记忆库已清除，正在重新初始化…', 'warn');
+  fetchAndUpdate(false);
+};
+
+// ================================================================
+// 初始化
+// ================================================================
+(async function init(){
+  setAlert('正在唤醒记忆库…', 'warn');
+
+  // 1) 初始化存储引擎（IndexedDB 优先，失败降级 localStorage）
+  await Memory.init();
+
+  // 2) 优先从记忆库读取全量
+  const localCount = await bootstrapFromMemory();
+
+  // 3) 接口拉取（合并追加）
+  await fetchAndUpdate(localCount > 0);
+
+  // 4) 启动倒计时与轮询
+  startCountdown();
+  startPolling();
+
+  // 5) 页面从后台恢复时立即刷新一次
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible'){
+      fetchAndUpdate(true);
+      state.countdown = POLL_INTERVAL;
+    }
+  });
+
+  // 6) 页面卸载前把内存数据再 put 一次（双保险，仍不清库）
+  window.addEventListener('beforeunload', () => {
+    if(state.rawData.length){
+      // 同步 put 不需要等待
+      try{ Memory.putMany(state.rawData); }catch(e){}
+    }
+  });
+})();
+
+</script>
+</body>
+</html>
