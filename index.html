@@ -1,3 +1,4 @@
+<!-- 新建 HTML，可通过预览按钮查看效果 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -240,7 +241,6 @@
   @media(max-width:560px){
     .status-table th:nth-child(2),
     .status-table td:nth-child(2){
-      /* 开奖时间在窄屏仍然保留，但缩短内边距 */
       padding:8px 6px;
     }
   }
@@ -296,7 +296,7 @@
   .kpi .v.accent{color:var(--accent)}
 
   /* ============================================================
-     预测明细表 —— 小字体，对齐，不溢出
+     预测明细表
      ============================================================ */
   .scroll{
     width:100%;
@@ -360,7 +360,7 @@
   }
 
   /* ============================================================
-     隐藏区块(按要求不显示)
+     隐藏区块
      ============================================================ */
   #chartsArea, #weightsCard{display:none !important}
 </style>
@@ -408,7 +408,7 @@
     </div>
   </div>
 
-  <!-- 隐藏的图表容器(保留 DOM，方便日后恢复) -->
+  <!-- 隐藏图表容器 -->
   <div id="chartsArea">
     <div class="grid" style="grid-template-columns:1fr 1fr; gap:14px">
       <div class="card">
@@ -428,7 +428,7 @@
     <div class="grid g4" id="kpis"></div>
   </div>
 
-  <!-- 隐藏的策略权重容器 -->
+  <!-- 隐藏策略权重容器 -->
   <div class="card" id="weightsCard" style="display:none">
     <h2>策略权重</h2>
     <div class="strategy-bars" id="strategyBars"></div>
@@ -436,7 +436,7 @@
 
   <!-- 预测明细 -->
   <div class="card" id="detailCard" style="display:none">
-    <h2>预测明细 · 最近 40 期</h2>
+    <h2>预测明细 · 最近 100 期</h2>
     <div class="scroll">
       <table class="detail-table" id="detailTable">
         <thead>
@@ -713,7 +713,7 @@ function softmax(scores, T){
 }
 
 // ================================================================
-// 记忆库：IndexedDB + localStorage 兜底(与原实现一致)
+// 记忆库：IndexedDB + localStorage 兜底
 // ================================================================
 const Memory = (() => {
   let idb = null;
@@ -1153,11 +1153,10 @@ function computeStats(){
 // ================================================================
 let chartRoll = null, chartCum = null;
 
-// 时间格式化：截断秒，保持对齐
 function formatTimeShort(date, time){
   if(!date && !time) return '—';
-  const d = (date || '').replace(/^\d{2}(\d{2})-(\d{2})-(\d{2})$/, '$2-$3'); // 2026-09-08 → 09-08
-  const t = (time || '').slice(0, 5); // 20:43:00 → 20:43
+  const d = (date || '').replace(/^\d{2}(\d{2})-(\d{2})-(\d{2})$/, '$2-$3');
+  const t = (time || '').slice(0, 5);
   return d ? `${d} ${t}` : t;
 }
 
@@ -1170,7 +1169,6 @@ function renderLatest(){
   document.getElementById('statsCard').style.display = 'block';
   document.getElementById('detailCard').style.display = 'block';
 
-  // 下一期期号 = 最新期号 + 1
   const nextNbr = (() => {
     const n = parseInt(last.nbr, 10);
     return Number.isFinite(n) ? String(n + 1) : '—';
@@ -1179,12 +1177,10 @@ function renderLatest(){
   const pred = state.nextPrediction;
   const timeStr = formatTimeShort(last.date, last.time);
 
-  // 预测行组合列：显示排除组合
   const predComboCell = pred
     ? `<span class="val-pred-combo">排除 ${pred.excluded}</span>`
     : `—`;
 
-  // 状态表格
   document.getElementById('latestGrid').innerHTML = `
     <table class="status-table">
       <thead>
@@ -1218,7 +1214,6 @@ function renderLatest(){
     </table>
   `;
 
-  // 推荐买入行
   const buyLine = document.getElementById('buyLine');
   if(pred){
     buyLine.innerHTML = `<span class="label">推荐买入</span>${pred.buys.join(' · ')}`;
@@ -1234,6 +1229,15 @@ function renderLatest(){
 function renderKPIs(){
   const stats = computeStats();
   if(!stats) return;
+
+  // ===== 最近 100 期统计 =====
+  const last100 = state.records.slice(-100);
+  const last100Total = last100.length;
+  const last100Hits = last100.filter(r => r.hit).length;
+  const last100Miss = last100Total - last100Hits;
+  const last100HitRate = last100Total > 0 ? last100Hits / last100Total : 0;
+  const last100MissRate = last100Total > 0 ? last100Miss / last100Total : 0;
+
   const kpis = [
     { k: '总命中率', v: (stats.totalHit*100).toFixed(2)+'%',
       cls: stats.totalHit >= 0.85 ? 'good' : stats.totalHit >= 0.75 ? 'warn' : 'bad' },
@@ -1243,6 +1247,12 @@ function renderKPIs(){
       cls: stats.rollMin >= 0.80 ? 'good' : stats.rollMin >= 0.70 ? 'warn' : 'bad' },
     { k: '≥85% 窗口占比', v: (stats.pct85*100).toFixed(1)+'%',
       cls: stats.pct85 >= 0.90 ? 'good' : stats.pct85 >= 0.70 ? 'warn' : 'bad' },
+    // ===== 新增：100 期命中率(正确 X 期) =====
+    { k: `100期命中率(正确 ${last100Hits} 期)`, v: (last100HitRate*100).toFixed(2)+'%',
+      cls: last100HitRate >= 0.85 ? 'good' : last100HitRate >= 0.75 ? 'warn' : 'bad' },
+    // ===== 新增：100 期错误率(错误 X 期) =====
+    { k: `100期错误率(错误 ${last100Miss} 期)`, v: (last100MissRate*100).toFixed(2)+'%',
+      cls: last100MissRate <= 0.15 ? 'good' : last100MissRate <= 0.25 ? 'warn' : 'bad' },
     { k: 'AR 阶数 p', v: state.currentAR ? state.currentAR.p : '—', cls: 'purple' },
     { k: '移动平均窗口 W', v: state.currentW, cls: 'purple' },
     { k: '残差 σ', v: state.currentSigma.toFixed(3), cls: 'accent' },
@@ -1253,12 +1263,11 @@ function renderKPIs(){
   ).join('');
 }
 
-// 明细表：新增开奖时间、开奖号码列，字体小而对齐
+// 明细表：最近 100 期
 function renderTable(){
   const tbody = document.querySelector('#detailTable tbody');
-  const records = state.records.slice(-40).reverse();
+  const records = state.records.slice(-100).reverse();
   tbody.innerHTML = records.map(r => {
-    // 从 rawData 取原始 date/time/number
     const raw = state.rawData[r.t] || {};
     const timeStr = formatTimeShort(raw.date, raw.time);
     const numberStr = raw.number || '—';
